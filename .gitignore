@@ -1,3 +1,5 @@
 *.csv
 *.docx
 *.zip
+catboost_info
+normalizacion.ipynb
