@@ -3,3 +3,5 @@
 *.zip
 catboost_info
 pruebas.ipynb
+shp
+*.html 
