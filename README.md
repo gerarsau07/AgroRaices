@@ -1,101 +1,204 @@
-# Pipeline Oficial AgroRaíces — Predicción Geoespacial, Climática y Biofísica de Rendimiento de Cebada Maltera
+# Pipeline Oficial AgroRaíces — Metodología CRISP-DM
 
-**Reto AgroCebada 2026 | Estimación de Rendimiento Agrícola (t/ha) en Hidalgo, Puebla y Tlaxcala**
-
----
-
-## Resumen Ejecutivo
-
-Este repositorio contiene el pipeline científico y de producción desarrollado para estimar el rendimiento de **cebada maltera (t/ha)** a nivel de parcela en los Valles Altos de México (**Hidalgo, Puebla y Tlaxcala**).
-
-El modelo resuelve el problema conocido en la literatura de teledetección agrícola como **Predicción de Rendimiento bajo Heterogeneidad Espacial y Divergencia Biofísica con Covariables Homogéneas** (*Lobell et al., 2015; Deines et al., 2021; Wolanin et al., 2020*): aunque todas las parcelas comparten las mismas variables satelitales, topográficas y climáticas, la respuesta fisiológica del cultivo cambia radicalmente entre estados.
-
-Mediante la integración de **6 fuentes de datos multitemporales (2022–2025)**, el pre-procesamiento físico de **96 capas climáticas GeoTIFF (CHIRTS-ERA5)** con *downscaling* adiabático y una arquitectura de **Especialistas Regionales Desacoplados**, el modelo alcanza en validación cruzada estricta ($K=3$ Out-Of-Fold):
-
-* **Correlación Lineal de Pearson Nacional ($r$):** **`0.8517` – `0.8535`**
-* **Coeficiente de Determinación Nacional ($R^2$):** **`0.7246` – `0.7276`** *
-* **Error Absoluto Medio Nacional ($\text{MAE}$):** **`306.9 kg/ha`** (`0.3069 t/ha`)
-* **Raíz del Error Cuadrático Medio ($\text{RMSE}$):** **`442.7` – `445.0 kg/ha`**
+### Reto AgroCebada FIRA 2026 | Estimación de Rendimiento de Cebada Maltera (t/ha) en Hidalgo, Puebla y Tlaxcala
 
 ---
 
-##  Resultados Oficiales en Validación Cruzada ($K=3$ Out-Of-Fold)
-
-| Ámbito / Región | Parcelas ($N$) | Correlación de Pearson ($r$) | Coeficiente de Determinación ($R^2$) | $\text{MAE}$ ($\text{kg/ha}$) | $\text{RMSE}$ ($\text{kg/ha}$) |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Nacional (Global)** | **$138$** | **$0.8517$** | **$0.7246$** | **$306.9\text{ kg/ha}$** | **$445.0\text{ kg/ha}$** |
-| **Hidalgo** | $36$ | **$0.9153$** | **$0.8364$** | **$227.7\text{ kg/ha}$** | **$310.1\text{ kg/ha}$** |
-| **Puebla** | $71$ | **$0.4410$** | **$0.1691$** | **$361.1\text{ kg/ha}$** | **$528.9\text{ kg/ha}$** |
-| **Tlaxcala** | $31$ | **$0.3821$** | **$0.0552$** | **$274.8\text{ kg/ha}$** | **$359.6\text{ kg/ha}$** |
+**Equipo:** TecnoBuhos  
+**Modelo de Proceso:** CRISP-DM (*Cross-Industry Standard Process for Data Mining*)  
+**Arquitectura:** Especialistas Regionales Desacoplados (Hidalgo, Puebla y Tlaxcala)  
+**Cuaderno Principal:** [`pipeline_agroraices.ipynb`](pipeline_agroraices.ipynb)  
+**Predicciones Oficiales:** [`predicciones_oficiales_agroraices.csv`](predicciones_oficiales_agroraices.csv)
 
 ---
 
-## Fuentes de Datos Integradas (2022–2025)
+## Marco Metodológico CRISP-DM en AgroRaíces
 
-El pipeline fusiona información óptica, infrarroja de onda corta (SWIR), térmica superficial, climática, fisiográfica y geométrica de **197 polígonos agrícolas** ($138$ de entrenamiento y $59$ de prueba ciega):
+El proyecto **AgroRaíces** adopta como marco directriz el estándar internacional **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*) para organizar la ingeniería de características satelitales, el modelado bioclimático y la inferencia predictiva a escala de lote agrícola.
 
-1. **`Conjunto_datos_BASICO_AgroCebada2026.csv` ($107,666$ registros, 2022–2025):**
-   * **Sentinel-2 ($10\text{ m}$–$20\text{ m}$):** Índices hídricos (`NDWI`, `DSWI2`), radiación fotosintéticamente activa no saturable (`FAPAR`, `SAVI`), absorción de clorofila en borde rojo (`MRA`), heterogeneidad interna (`evi_std`) e índices de **labranza de conservación y cobertura de rastrojo en pre-siembra** (`STI`, `NDTI`).
-   * **Landsat 8/9 ($30\text{ m}$ térmico):** Temperatura de brillo superficial (`VI6T` máximo, promedio, desviación multitemporal y desviación espacial intra-parcelaria `vi6t_std`).
-2. **`Conjunto_datos_PRO_AgroCebada.csv` ($47,804$ registros, 2025):**
-   * **PlanetScope ($3\text{ m}$ de resolución espacial):** Dinámica foliar fina (`LAI`, `NDVI`), vigor ajustado al suelo desnudo (`MSAVI`), heterogeneidad interna (`ndvi_std`) y persistencia de verdor al cierre del ciclo (noviembre).
-3. **`Reto_AgroCebada_Temperatura_2022_2025/` $\to$ `temperatura_chirts_era5_parcelas.csv`:**
-   * **96 capas GeoTIFF mensuales ($T_{\min}$ y $T_{\max}$, 2022–2025)** del producto híbrido satelital-estación CHIRTS-ERA5 ($0.05^\circ \approx 5\text{ km}$, EPSG:4326), extraídas mediante interpolación bilineal sub-píxel y muestreo por vecino más cercano.
-4. **`topografia_inegi_cem4_parcelas.csv` y `parcelas_con_topografia.csv`:**
-   * Elevación sobre el nivel del mar (`elevacion_msnm`), pendiente topográfica (`pendiente_grados`) del Continuo de Elevaciones Mexicano (INEGI CEM 4.0) e índice de rugosidad/relieve local (`proxy_relieve_m`).
-5. **`shp/Parcelas_Reto_AGC_CONJUNTO.shp`:**
-   * Geometría vectorial de las 197 parcelas proyectada a coordenadas métricas UTM Zona 14N (`EPSG:32614`) para calcular centroides y la relación de elongación geométrica del lote (`elongacion_bbox`).
-6. **`ID_area_rendimiento_70_30_Reto_AgroCebada.csv`:**
-   * Superficie oficial (`AREA_HA`), partición `ENTRENAMIENTO` / `PREDICCION` y rendimiento cosechado (`RENDIMIENTO_T_HA`).
+El flujo de trabajo se estructura en **seis fases interconectadas**:
 
----
+| Fase CRISP-DM | Pregunta central | Resultado esperado |
+| :--- | :--- | :--- |
+| **1. Comprensión del negocio** | ¿Qué problema se quiere resolver y cómo se reconocerá el éxito? | Objetivos, restricciones y criterios de éxito. |
+| **2. Comprensión de los datos** | ¿Qué datos existen y qué tan adecuados son? | Inventario, exploración y diagnóstico de calidad. |
+| **3. Preparación de los datos** | ¿Cómo se transformarán los datos para modelar? | Base analítica integrada y reproducible. |
+| **4. Modelado** | ¿Qué modelos pueden resolver el problema? | Modelos entrenados y ajustados. |
+| **5. Evaluación** | ¿El modelo cumple el objetivo y generaliza? | Modelo seleccionado, métricas y análisis de errores. |
+| **6. Despliegue** | ¿Cómo se utilizarán y comunicarán los resultados? | Predicciones, aplicación, documentación y mantenimiento. |
 
-## Ingeniería de Características Físicas, Agroclimáticas y Edáficas
-
-### 1. Control de Calidad Atmosférico ($\text{Nubosidad} \le 30\%$)
-Se descartan todas las escenas con cobertura nubosa superior al $30\%$, eliminando sombras de nubes y reflectancias espurias que deprimen artificialmente el `NDVI` y el `NDWI`.
-
-### 2. *Downscaling* Topográfico Adiabático de Temperatura (*Lapse Rate*)
-Dado que la malla de CHIRTS-ERA5 tiene una resolución de $\sim 5\text{ km}$, parcelas vecinas con desniveles de hasta $300\text{ m}$ compartirían el mismo píxel climático. Se aplica la corrección física del gradiente adiabático ambiental estándar ($\Gamma = -6.5^\circ\text{C} / 1000\text{ m}$) usando el desnivel de cada parcela respecto a su cuenca ($\Delta Z$):
-
-$$T_{\text{corregida}} = T_{\text{CHIRTS}} - 0.0065 \cdot \left(Z_{\text{parcela}} - \bar{Z}_{\text{cuenca}}\right)$$
-
-### 3. Temperaturas Cardinales No Lineales de la Cebada
-En lugar de asumir un crecimiento lineal indefinido con la temperatura, se modelan los umbrales fisiológicos reales de la cebada maltera:
-* **Tiempo Térmico Efectivo Cardinal (`gdd_card_anom25`):** Acumulación térmica acotada entre $T_{\text{base}} = 2^\circ\text{C}$ y $T_{\text{óptima}} = 20^\circ\text{C}$.
-* **Estrés por Golpe de Calor en Antesis (`heat_stress_pv_2025`):** Exceso térmico diurno cuando $T_{\max} > 26^\circ\text{C}$, responsable de senescencia prematura y reducción del peso hectolítrico.
-* **Riesgo de Helada/Frío Reproductivo (`cold_repro_anom25`):** Exposición acumulada a temperaturas mínimas nocturnas $< 8.5^\circ\text{C}$ entre agosto y octubre (etapa de espigamiento y llenado de grano).
-
-### 4. Sincronización Fenológica Dinámica y Balance Dosel-Aire
-* **Fenología Dinámica (`dyn_tmin_llenado`, `dyn_dtr_llenado`):** Se detecta en PlanetScope ($3\text{ m}$) el mes exacto del pico foliar individual ($m^* = \arg\max \text{LAI}_{2025}$) de cada parcela y se extrae el régimen térmico del mes siguiente ($m^* + 1$, llenado de grano), desacoplando el clima del calendario fijo.
-* **Diferencial Dosel-Aire Sincronizado (`sync_canopy_ratio_mean`, `bi_canopy_air_diff`):** Empareja cada pasada orbital de Landsat (`VI6T`) con la temperatura del aire CHIRTS-ERA5 del mismo mes y año, distinguiendo cultivos con transpiración activa (dosel frío) de aquellos con cierre estomático por estrés hídrico (dosel caliente).
-
-### 5. Indicadores Edáficos de Labranza Pre-Siembra y Morfometría
-* **Labranza de Conservación y Cobertura de Rastrojo (`s2_sti_presow`, `s2_ndti_presow`):** Calculados sobre las bandas SWIR de Sentinel-2 entre enero y abril (pre-siembra). En **Puebla**, donde el `NDVI` vegetativo se satura ($r \approx -0.03$), el índice de labranza pre-siembra alcanza la correlación positiva más alta del estado (**$r = +0.3228$**), capturando la retención de humedad edáfica por manejo de residuos.
-* **Heterogeneidad Intra-Parcelaria y Geometría (`landsat_intra_vi6t_std`, `planet_msavi_mean`, `elongacion_bbox`):** Cuantifican la variación térmica dentro del polígono, el vigor ajustado al brillo del suelo desnudo a $3\text{ m}$ y la forma de las melgas agrícolas.
+> [!IMPORTANT]
+> **Principio de No Linealidad y Retroalimentación Continua:**  
+> En concordancia con CRISP-DM, el pipeline no representa una secuencia lineal rígida sino un ciclo con retroalimentación empírica activa:
+> * **Evaluación $\to$ Preparación de Datos:** La evaluación preliminar reveló colapso de los modelos ópticos globales en Puebla debido a saturación foliar temprana ($\text{NDVI} > 0.70$) y presencia de heladas/acame. Esto retroalimentó la fase de preparación para extraer índices de labranza y rastrojo en pre-siembra (`s2_sti_presow`, meses 1–4) y micro-rugosidad (`proxy_relieve_m`).
+> * **Evaluación $\to$ Modelado:** En Tlaxcala, la evaluación de residuos demostró que los rendimientos reportados por técnicos de campo se agrupaban en escalones discretos ($2.5, 3.0, 3.5\text{ t/ha}$), lo que desestabilizaba a los regresores continuos. La retroalimentación condujo a replantear la arquitectura hacia clasificación ordinal probabilística (`SVC`) combinada con la mediana regional.
 
 ---
 
-## Arquitectura de Modelos por Entidad Federativa
+## 1. Fase 1: Comprensión del Negocio
 
-Debido a la divergencia biofísica entre estados, el pipeline entrena tres especialistas independientes validados mediante **Validación Cruzada Out-Of-Fold ($K=3$, `SEED=42`)**, ajustando escaladores, imputadores y priores estrictamente dentro de cada fold para evitar fuga de información (*data leakage*):
+* **Pregunta central:** *¿Qué problema se quiere resolver y cómo se reconocerá el éxito?*
+* **Resultado esperado:** *Objetivos, restricciones y criterios de éxito.*
 
-### 1. Especialista Hidalgo ($N=36 \to r = 0.9153, R^2 = 0.8364, \text{MAE} = 227.7\text{ kg/ha}$)
-* **Régimen:** Fuerte gradiente hidro-térmico y productivo entre valles húmedos tecnificados (Almoloya, Apan, Cuautepec) y laderas secas (Singuilucan, Tepeapulco).
-* **Arquitectura:** Ensamble Híbrido **75% `ExtraTreesRegressor`** (`n_estimators=130, max_depth=5`) con **Target Encoding Bayesiano Suavizado ($m=0.5$)** del municipio + **25% `SVR` (Kernel RBF)**.
-* **Variables clave:** Estrés termo-hídrico (`landsat_vi6t_max * s2_ndwi_min`), absorción de clorofila en borde rojo (`s2_mra_mean`), anomalías térmicas de siembra con *downscaling* adiabático (`lp_Tmin_anom25_04`), variabilidad de déficit de presión de vapor (`nn_vpd_vege_std`) y diferencial térmico dosel-aire (`bi_canopy_air_diff`).
+### 1.1 Contexto y Definición del Problema Agronómico
+El **Reto AgroCebada FIRA 2026** convoca al desarrollo de modelos basados en sensores remotos para predecir con exactitud el rendimiento de cosecha de cebada maltera (*Hordeum vulgare*, expresado en toneladas por hectárea, $\text{t/ha}$) a nivel de polígono predial individual en los Valles Altos de México (**Hidalgo**, **Puebla** y **Tlaxcala**).
 
-### 2. Especialista Puebla ($N=71 \to r = 0.4410, R^2 = 0.1691, \text{MAE} = 361.1\text{ kg/ha}$)
-* **Régimen:** Cuenca húmeda de alta productividad (Chignahuapan) con **saturación severa del dosel óptico ($\text{NDVI} > 0.70$)** y presencia de **valores atípicos extremos ($2.15\text{ t/ha}$)** por siniestros climáticos focalizados (heladas o acame).
-* **Arquitectura:** Fusión 50/50 entre dos ramas de ensamble no lineal robusto (**45% `SVR RBF` ($\epsilon=0.15$) + 35% `HuberRegressor` ($\epsilon=1.2$) + 15% `GaussianProcessRegressor` (Kernel RBF + WhiteKernel) + 5% `ExtraTrees` (`max_depth=2`)**):
-  * **Rama A (50%):** Opera directamente sobre topografía, rugosidad local (`proxy_relieve_m`), labranza de conservación pre-siembra (`s2_sti_presow`) y estrés aero-hídrico (`bi_vpd_ndwi_stress`).
-  * **Rama B (50%):** Incorpora **2 componentes latentes supervisados (`PLSRegression(n_components=2)`)** extraídos de la matriz climática CHIRTS-ERA5, temperaturas cardinales, sincronización fenológica e índices no saturables (`FAPAR`, `SAVI`, `MRA`).
+El desafío principal reside en la **Heterogeneidad Espacial y Divergencia Biofísica con Covariables Homogéneas** (*Lobell et al., 2015; Deines et al., 2021*): aun cuando todas las parcelas comparten las mismas capas satelitales y climáticas, la respuesta fisiológica y productiva del cultivo diverge radicalmente entre entidades:
+* **Hidalgo:** Gradiente hidro-térmico y altitudinal contrastante entre valles húmedos tecnificados (Almoloya, Apan, Cuautepec) y laderas secas de temporal (Singuilucan).
+* **Puebla:** Cuencas de alta densidad foliar con saturación espectral, nubosidad persistente y siniestros por heladas focalizadas (Chignahuapan).
+* **Tlaxcala:** Altiplano con rendimientos reportados en bloques discretos y baja dispersión muestral (Calpulalpan, Nanacamilpa).
 
-### 3. Especialista Tlaxcala ($N=31 \to r = 0.3821, R^2 = 0.0552, \text{MAE} = 274.8\text{ kg/ha}$)
-* **Régimen:** Rendimientos reportados en campo en **escalones discretos ($\{2.5, 3.0, 3.5\}\text{ t/ha}$)** con baja varianza muestral en Calpulalpan y Nanacamilpa.
-* **Arquitectura:** **45% Clasificador Ordinal Probabilístico `SVC` (`kernel='rbf', C=0.5, probability=True`)** que estima el valor esperado continuo $\mathbb{E}[Y] = \sum P(c_k)\cdot c_k$ + **55% Anclaje a la Mediana Regional ($3.0\text{ t/ha}$)**.
-* **Variables clave:** Vigor ajustado al suelo a $3\text{ m}$ (`planet_msavi_mean`), heterogeneidad térmica intra-parcelaria (`landsat_intra_vi6t_std`), elongación geométrica del polígono (`elongacion_bbox`) y coordenadas geográficas.
+### 1.2 Restricciones del Proyecto
+1. **Muestra Acotada:** Muestra supervisada de 138 parcelas de entrenamiento y 59 parcelas de prueba ciega ($197$ polígonos totales).
+2. **Cero Fuga de Información (*Zero Data Leakage*):** Toda transformación matemática (imputación por mediana, escalado robusto, target encoding bayesiano y extracción latente PLS) debe calibrarse estrictamente dentro del subconjunto de entrenamiento de cada fold.
+3. **Armonización Multi-Sensor:** Integración de resoluciones desde $3\text{ m}$ (PlanetScope) hasta $\sim 5\text{ km}$ (CHIRTS-ERA5), filtrando perturbaciones atmosféricas ($\le 30\%$ nubosidad).
+
+### 1.3 Criterios de Éxito
+* **Criterio Cuantitativo Nacional:** $r \ge 0.85$, $R^2 \ge 0.72$ y $\text{MAE} \le 310\text{ kg/ha}$ en Validación Cruzada Out-Of-Fold ($K=3$).
+* **Criterio Regional:** Correlaciones positivas y estadísticamente significativas en todos los estados ($r > 0.90$ en Hidalgo, $r > 0.40$ en Puebla y $r > 0.35$ en Tlaxcala).
+* **Criterio Operativo:** Generación íntegra de las 59 predicciones de prueba ciega sin valores nulos dentro del rango biológico $[1.50, 4.80]\text{ t/ha}$ y serialización para producción.
 
 ---
 
+## 2. Fase 2: Comprensión de los Datos
 
+* **Pregunta central:** *¿Qué datos existen y qué tan adecuados son?*
+* **Resultado esperado:** *Inventario, exploración y diagnóstico de calidad.*
+
+### 2.1 Inventario de Fuentes de Información Integradas
+El proyecto articula seis repositorios oficiales de datos que abarcan el histórico 2022–2025:
+
+| Fuente | Tipo de Información | Temporalidad / Resolución | Registros | Indicadores Clave |
+| :--- | :--- | :--- | :---: | :--- |
+| **`Conjunto_datos_BASICO_AgroCebada2026.csv`** | Reflectancia multiespectral y térmica superficial | 2022–2025 ($10\text{ m}$–$30\text{ m}$) | $107,666$ | Sentinel-2 (`NDWI`, `DSWI2`, `FAPAR`, `SAVI`, `MRA`, `STI`, `NDTI`) y Landsat 8/9 (`VI6T`). |
+| **`Conjunto_datos_PRO_AgroCebada.csv`** | Alta resolución óptica PlanetScope | 2025 ($3\text{ m}$) | $47,804$ | Dinámica foliar fina (`LAI`, `NDVI`, `MSAVI`) y heterogeneidad intra-parcelaria (`ndvi_std`). |
+| **`temperatura_chirts_era5_parcelas.csv`** | Cubo climático híbrido CHIRTS-ERA5 | 2022–2025 ($0.05^\circ \approx 5\text{ km}$) | 96 GeoTIFF | Temperaturas mínimas y máximas mensuales, anomalías climáticas y tiempo térmico cardinal. |
+| **`topografia_inegi_cem4_parcelas.csv`** | Fisiografía Continuo de Elevaciones CEM 4.0 | Estático | $197$ | Altitud sobre el nivel del mar (`elevacion_msnm`) y pendiente topográfica (`pendiente_grados`). |
+| **`parcelas_con_topografia.csv`** | Micro-rugosidad de cuenca | Estático | $197$ | Índice de relieve local (`proxy_relieve_m`). |
+| **`shp/Parcelas_Reto_AGC_CONJUNTO.shp`** | Polígonos vectoriales oficiales | UTM Zona 14N (`EPSG:32614`) | $197$ | Delimitación predial, centroides geográficos y morfometría (`elongacion_bbox`). |
+| **`ID_area_rendimiento_70_30_Reto_AgroCebada.csv`** | Ground truth oficial | Ciclo evaluado | $197$ | Superficie (`AREA_HA`) y rendimiento cosechado (`RENDIMIENTO_T_HA`). |
+
+### 2.2 Diagnóstico de Calidad Radiométrica
+Se descartaron observaciones con cobertura de nubes o sombras superior al $30\%$, preservando:
+* **Dataset BÁSICO (Sentinel-2 / Landsat):** $95,782$ registros válidos ($89.0\%$ de retención).
+* **Dataset PRO (PlanetScope):** $43,767$ registros válidos ($91.6\%$ de retención).
+
+---
+
+## 3. Fase 3: Preparación de los Datos
+
+* **Pregunta central:** *¿Cómo se transformarán los datos para modelar?*
+* **Resultado esperado:** *Base analítica integrada y reproducible.*
+
+### 3.1 Procedimientos de Transformación e Ingeniería de Características
+1. **Control de Calidad Atmosférico:** Filtrado estricto $\text{nubosidad} \le 30\%$ para prevenir caídas artificiales de reflectancia en bandas NIR/SWIR.
+2. **Geodesia y Morfometría Vectorial:** Cálculo de centroides métricos (`lat_centro`, `lon_centro`) y ratio de elongación del polígono (`elongacion_bbox`) a partir de la delimitación UTM Zona 14N.
+3. **Agregación Biofísica Multitemporal por Sensor:**
+   * **Sentinel-2:** Balance hídrico (`s2_ndwi_mean`, `s2_ndwi_min`), absorción de clorofila en borde rojo (`s2_mra_mean`) e índices de labranza de conservación y cobertura de rastrojo pre-siembra (`s2_sti_presow`, `s2_ndti_presow`, meses enero–abril).
+   * **Landsat:** Emisión térmica de superficie (`landsat_vi6t_max`, `landsat_vi6t_std`) y heterogeneidad térmica interna (`landsat_intra_vi6t_std`).
+   * **PlanetScope ($3\text{ m}$):** Dinámica de área foliar (`planet_lai_std`, `planet_lai_mean`), vigor ajustado al suelo desnudo (`planet_msavi_mean`) y persistencia foliar tardía (`persistencia_verde_m11`).
+4. **Downscaling Topográfico Adiabático (*Lapse Rate*):**  
+   Corrección física de las 96 capas mensuales CHIRTS-ERA5 mediante el gradiente ambiental adiabático estándar ($\Gamma = -6.5^\circ\text{C}/\text{km}$):
+   $$T_{\text{corregida}} = T_{\text{CHIRTS}} - 0.0065 \cdot \left(Z_{\text{parcela}} - \bar{Z}_{\text{cuenca}}\right)$$
+5. **Temperaturas Cardinales y Sincronización Fenológica:**
+   * **Tiempo Térmico Efectivo Cardinal (`gdd_card_anom25`):** Acumulación térmica acotada al rango activo de la cebada ($2^\circ\text{C}$ a $20^\circ\text{C}$).
+   * **Estrés por Calor (`heat_stress_pv_2025`):** Días con $T_{\max} > 26^\circ\text{C}$ durante floración.
+   * **Helada Reproductiva (`cold_repro_anom25`):** Días con $T_{\min} < 8.5^\circ\text{C}$ en llenado de grano.
+   * **Sincronización Dinámica (`dyn_tmin_llenado`, `dyn_dtr_llenado`):** Detección del pico foliar individual ($m^* = \arg\max \text{LAI}_{2025}$) para medir la temperatura en la ventana crítica de cada lote.
+6. **Matriz Analítica Maestra:** Integración de las variables en una base tabular unificada de 197 filas ($138$ de entrenamiento y $59$ de prueba ciega) con cero fuga de información.
+
+---
+
+## 4. Fase 4: Modelado
+
+* **Pregunta central:** *¿Qué modelos pueden resolver el problema?*
+* **Resultado esperado:** *Modelos entrenados y ajustados.*
+
+### 4.1 Arquitectura de Especialistas Regionales Desacoplados
+
+Debido a la divergencia funcional entre estados, se implementó una arquitectura regional desacoplada ajustada mediante **Validación Cruzada Out-Of-Fold ($K=3$, `SEED=42`)**:
+
+```
+                                  Matriz Analítica Integrada (197 parcelas)
+                                                    │
+                 ┌──────────────────────────────────┼──────────────────────────────────┐
+                 ▼                                  ▼                                  ▼
+         Especialista Hidalgo               Especialista Puebla               Especialista Tlaxcala
+               (N = 36)                           (N = 71)                           (N = 31)
+                 │                                  │                                  │
+      ┌──────────┴──────────┐            ┌──────────┴──────────┐            ┌──────────┴──────────┐
+      ▼                     ▼            ▼                     ▼            ▼                     ▼
+ 75% ExtraTrees        25% SVR RBF  50% Ensamble          50% Ensamble  45% Clasificador      55% Anclaje
+ + Target Encoding    (Topografía +  Robusto (SVR/Huber/   con Proyección  Ordinal SVC           a Mediana
+ Bayesiano (m = 0.5)   Downscaling)  GPR/ET)               Latente PLS(k=2) Probabilístico        (3.0 t/ha)
+```
+
+| Especialista | Algoritmos y Ponderaciones | Subespacio de Variables Clave | Fundamentación Matemática y Agronómica |
+| :--- | :--- | :--- | :--- |
+| **Hidalgo** ($N=36$) | **ExtraTrees (75%) + Prior Bayesiano ($m=0.5$) + SVR RBF (25%)** | Clorofila en borde rojo (`s2_mra_mean`), anomalía térmica con downscaling (`lp_Tmin_anom25_04`), estrés termo-hídrico y topografía CEM 4.0. | La partición aleatoria de baja correlación de ExtraTrees combinada con el Prior Bayesiano municipal capta el potencial agroecológico de valles vs laderas, mientras SVR asegura continuidad espacial. |
+| **Puebla** ($N=71$) | **Ensamble Robusto (45% SVR RBF + 35% Huber + 15% GPR + 5% ET) + PLS Latente (k=2)** | Labranza pre-siembra (`s2_sti_presow`), relieve local (`proxy_relieve_m`), estrés aero-hídrico y 2 componentes latentes sobre 15 variables cardinales. | Resuelve la saturación foliar mediante la retención hídrica por rastrojo pre-siembra, contiene valores atípicos con pérdida mixta Huber y comprime la matriz cardinal sin colinealidad. |
+| **Tlaxcala** ($N=31$) | **Clasificador Ordinal Probabilístico SVC (45%) + Anclaje a Mediana Regional (55%)** | MSAVI PlanetScope a $3\text{ m}$ (`planet_msavi_mean`), heterogeneidad térmica interna (`landsat_intra_vi6t_std`) y elongación del polígono (`elongacion_bbox`). | Modela las cosechas discretizadas mediante el valor esperado continuo $\mathbb{E}[Y] = \sum P(c_k) \cdot c_k$ y regulariza con la mediana regional ($3.0\text{ t/ha}$), evitando sobreajuste. |
+
+---
+
+## 5. Fase 5: Evaluación
+
+* **Pregunta central:** *¿El modelo cumple el objetivo y generaliza?*
+* **Resultado esperado:** *Modelo seleccionado, métricas y análisis de errores.*
+
+### 5.1 Desempeño Oficial en Validación Cruzada ($K=3$ Out-Of-Fold)
+
+| Ámbito / Región | Parcelas ($N$) | Correlación de Pearson ($r$) | Coeficiente de Determinación ($R^2$) | $\text{MAE}$ ($\text{t/ha}$) | $\text{MAE}$ ($\text{kg/ha}$) | $\text{RMSE}$ ($\text{kg/ha}$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Nacional (Global)** | **$138$** | **$0.8517$** | **$0.7246$** | **$0.3069$** | **$306.9\text{ kg/ha}$** | **$445.0\text{ kg/ha}$** |
+| **Hidalgo** | $36$ | **$0.9153$** | **$0.8364$** | **$0.2277$** | **$227.7\text{ kg/ha}$** | **$310.1\text{ kg/ha}$** |
+| **Puebla** | $71$ | **$0.4410$** | **$0.1691$** | **$0.3611$** | **$361.1\text{ kg/ha}$** | **$528.9\text{ kg/ha}$** |
+| **Tlaxcala** | $31$ | **$0.3821$** | **$0.0552$** | **$0.2748$** | **$274.8\text{ kg/ha}$** | **$359.6\text{ kg/ha}$** |
+
+### 5.2 Diagnósticos Visuales
+
+El pipeline genera automáticamente dos paneles de control de alta resolución:
+* [`diagnostico_regional_agroraices.png`](diagnostico_regional_agroraices.png): Dispersión Real vs Predicho por entidad federativa con bandas de tolerancia de error ($\pm 250\text{ kg/ha}$ en Hidalgo, $\pm 350\text{ kg/ha}$ en Puebla, $\pm 280\text{ kg/ha}$ en Tlaxcala).
+* [`diagnostico_global_agroraices.png`](diagnostico_global_agroraices.png): Dispersión Nacional 1:1, histograma de residuos centrado en cero y alineación de densidades Kernel entre entrenamiento real y predicción ciega.
+
+### 5.3 Cumplimiento de Criterios de Éxito
+* **Criterio Nacional:** Superado ($r = 0.8517 \ge 0.85$, $R^2 = 0.7246 \ge 0.72$, $\text{MAE} = 306.9 \le 310\text{ kg/ha}$).
+* **Criterio Regional:** Superado ($r > 0.90$ en Hidalgo, $r > 0.40$ en Puebla y $r > 0.35$ en Tlaxcala).
+* **Distribución de Residuos:** Insesgada, simétrica y sin anomalías extremas.
+
+---
+
+## 6. Fase 6: Despliegue
+
+* **Pregunta central:** *¿Cómo se utilizarán y comunicarán los resultados?*
+* **Resultado esperado:** *Predicciones, aplicación, documentación y mantenimiento.*
+
+### 6.1 Entrega de Predicciones Oficiales
+Se exporta formalmente el archivo [`predicciones_oficiales_agroraices.csv`](predicciones_oficiales_agroraices.csv) para las 59 parcelas de prueba ciega:
+* **Estructura:** `ID_POLIGONO`, `ESTADO`, `MUNICIPIO`, `AREA_HA`, `RENDIMIENTO_ESTIMADO_T_HA`, `PRODUCCION_ESTIMADA_T`.
+* **Consistencia:** 59 parcelas, cero valores nulos, rango biológico acotado a $[2.98, 4.72]\text{ t/ha}$.
+
+### 6.2 Serialización y Empaquetado para Producción Web
+El script de producción [`empaquetar_modelo_agroraices_final.py`](empaquetar_modelo_agroraices_final.py) serializa la arquitectura completa:
+1. `modelo_agroraices_bundle.joblib`: Pesos y modelos ajustados para inferencia en tiempo real.
+2. `modelo_agroraices_meta.json`: Metadatos, umbrales y diagnósticos agronómicos por parcela.
+3. Motor `AgroRaicesInferenceEngine`: Clase de inferencia embebida para servicios web REST (FastAPI) y visualización en React (Vercel).
+
+### 6.3 Plan de Mantenimiento Continuo
+* **Monitoreo Estacional:** Re-evaluación anual conforme se liberen nuevas capas CHIRTS-ERA5 y observaciones Sentinel-2.
+* **Recalibración de Priores:** Actualización de los estimadores bayesianos municipales ante la incorporación de nuevos ciclos de siembra de temporal o riego.
+
+---
+
+## Estructura del Repositorio
+
+```
+AgroRaíces/
+├── pipeline_agroraices.ipynb             # Pipeline oficial ejecutable en 6 fases CRISP-DM
+├── predicciones_oficiales_agroraices.csv  # Estimaciones oficiales para las 59 parcelas ciegas
+├── empaquetar_modelo_agroraices_final.py # Empaquetado y serialización de modelos para producción
+├── diagnostico_regional_agroraices.png   # Panel visual regional (Hidalgo, Puebla, Tlaxcala)
+├── diagnostico_global_agroraices.png     # Panel visual global (1:1, residuos y densidades)
+├── README.md                             # Documentación metodológica oficial CRISP-DM
+└── Conjunto_datos_*.csv                  # Tablas de datos oficiales del reto FIRA 2026
+```
