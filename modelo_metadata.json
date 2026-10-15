@@ -1,0 +1,63 @@
+{
+  "model_name": "Pipeline Oficial AgroRaíces — Arquitectura Neuro-Simbólica QBAF + DF-QuAD",
+  "architecture": "QBAF + DF-QuAD con Validación Undercutting y Doble Separación (Estado y Grupos Homogéneos)",
+  "version": "qbaf-dfquad-production",
+  "target": "RENDIMIENTO_T_HA",
+  "unit": "toneladas por hectárea (t/ha)",
+  "official_metrics_oof": {
+    "pearson_r_global": 0.8584,
+    "r2_global": 0.7362,
+    "mae_global_kg": 296.3,
+    "rmse_global_kg": 435.6,
+    "rmse_global_ton": 0.4356,
+    "por_estado": {
+      "Hidalgo": {
+        "n": 36,
+        "pearson_r": 0.9436,
+        "r2": 0.8885,
+        "mae_kg": 188.2,
+        "rmse_kg": 256.0
+      },
+      "Puebla": {
+        "n": 71,
+        "pearson_r": 0.4433,
+        "r2": 0.171,
+        "mae_kg": 360.5,
+        "rmse_kg": 528.3
+      },
+      "Tlaxcala": {
+        "n": 31,
+        "pearson_r": 0.3821,
+        "r2": 0.0552,
+        "mae_kg": 274.8,
+        "rmse_kg": 359.6
+      }
+    }
+  },
+  "supported_states": [
+    "Hidalgo",
+    "Puebla",
+    "Tlaxcala"
+  ],
+  "supported_municipalities": {
+    "Hidalgo": [
+      "Almoloya",
+      "Apan",
+      "Cuautepec de Hinojosa",
+      "Emiliano Zapata",
+      "Singuilucan",
+      "Tepeapulco"
+    ],
+    "Puebla": [
+      "Chignahuapan"
+    ],
+    "Tlaxcala": [
+      "Calpulalpan",
+      "Nanacamilpa de Mariano Arista"
+    ]
+  },
+  "clamping_range": [
+    1.5,
+    4.8
+  ]
+}
