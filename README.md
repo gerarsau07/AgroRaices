@@ -55,19 +55,26 @@ Para resolver la **Heterogeneidad Espacial y Divergencia Biofísica con Covariab
 
 ---
 
-## 2. Fase 2 y Fase 3: Comprensión y Preparación de los Datos 
+## 2. Fase 2: Comprensión de los Datos (`notebooks/01_mapas.ipynb` y `notebooks/04_pipeline_agroraices.ipynb`)
 
-Todas las fuentes ubicadas en `data/` se integran bajo prevención estricta de fuga de información (*Zero Data Leakage*):
-* **Control Radiométrico (Capa 0):** Retención exclusiva de escenas con $\text{nubosidad} \le 30\%$ ($64.35\%$ en Sentinel-2/Landsat y $68.39\%$ en PlanetScope).
-* **Geodesia y Morfometría (`data/shp/`):** Proyección a UTM Zona 14N (`EPSG:32614`), centroides (`lat_centro`, `lon_centro`), ratio de elongación (`elongacion_bbox`), altitud/pendiente (`elevacion_msnm`, `pendiente_grados`) y relieve local (`proxy_relieve_m`).
-* **Índices Biofísicos y de Labranza Pre-Siembra:** Hidratación foliar (`s2_ndwi_mean`, `s2_ndwi_min`), banda SWIR no saturable (`s2_dswi2_mean`), clorofila en borde rojo (`s2_mra_mean`), rastrojo en pre-siembra enero–abril (`s2_sti_presow`, `s2_ndti_presow`), emisión térmica (`landsat_vi6t_max`, `landsat_vi6t_std`) y dinámica foliar a $3\text{ m}$ (`planet_lai_std`, `planet_msavi_mean`, `planet_ndvi_mean`, `persistencia_verde_m11`).
-* **Downscaling Topográfico Adiabático ($\Gamma = -6.5^\circ\text{C}/\text{km}$):** Corrección física por altitud sobre el cubo climático `data/temperatura_chirts_era5_parcelas.csv`.
+En la segunda fase de CRISP-DM se auditan las fuentes multiespectrales, climáticas y vectoriales contenidas en `data/` para caracterizar las $197$ parcelas ($138$ de entrenamiento y $59$ de prueba ciega):
+* **Inventario Multi-Sensor y Cartográfico:** Integración del padrón oficial (`ID_area_rendimiento_70_30_Reto_AgroCebada.csv`), geometrías vectoriales (`data/shp/Parcelas_Reto_AGC_CONJUNTO.shp` exploradas en [`notebooks/01_mapas.ipynb`](notebooks/01_mapas.ipynb)), series ópticas y térmicas (`indices_sentinel2_landsat_parcelas.csv` a $10\text{--}30\text{ m}$), serie de alta resolución (`indices_planet_parcelas.csv` a $3\text{ m}$) y cubo climático (`temperatura_chirts_era5_parcelas.csv`).
+* **Auditoría de Calidad Radiométrica:** El análisis de cobertura nubosa reveló contaminación atmosférica durante el temporal de lluvias, estableciendo el umbral físico de retención en escenas con $\text{nubosidad} \le 30\%$ ($64.35\%$ de escenas limpias en Sentinel-2/Landsat y $68.39\%$ en PlanetScope).
 
 ---
 
-## 3. Fase 4: Modelado y Justificación Experimental (`notebooks/`)
+## 3. Fase 3: Preparación de los Datos (`notebooks/04_pipeline_agroraices.ipynb`)
 
-### 3.1 La Naturaleza Matemática de los Datos como Punto de Partida (`notebooks/03_seleccion_modelos_por_nodo.ipynb`)
+Todas las fuentes se transforman y estructuran bajo prevención estricta de fuga de información (*Zero Data Leakage*):
+* **Geodesia y Morfometría (`data/shp/`):** Proyección a UTM Zona 14N (`EPSG:32614`), centroides (`lat_centro`, `lon_centro`), ratio de elongación (`elongacion_bbox`), altitud/pendiente (`elevacion_msnm`, `pendiente_grados`) y relieve local (`proxy_relieve_m`).
+* **Índices Biofísicos y de Labranza Pre-Siembra:** Hidratación foliar (`s2_ndwi_mean`, `s2_ndwi_min`), banda SWIR no saturable (`s2_dswi2_mean`), clorofila en borde rojo (`s2_mra_mean`), rastrojo en pre-siembra enero–abril (`s2_sti_presow`, `s2_ndti_presow`), emisión térmica (`landsat_vi6t_max`, `landsat_vi6t_std`) y dinámica foliar a $3\text{ m}$ (`planet_lai_std`, `planet_msavi_mean`, `planet_ndvi_mean`, `persistencia_verde_m11`).
+* **Downscaling Topográfico Adiabático ($\Gamma = -6.5^\circ\text{C}/\text{km}$) y Capa 0 de *Undercutting*:** Corrección térmica por altitud y activación del bloqueo físico cuando $\text{NDVI} > P_{75}$ en Puebla para redirigir el peso hacia las bandas SWIR, térmicas y de labranza.
+
+---
+
+## 4. Fase 4: Modelado y Justificación Experimental (`notebooks/`)
+
+### 4.1 La Naturaleza Matemática de los Datos como Punto de Partida (`notebooks/03_seleccion_modelos_por_nodo.ipynb`)
 
 La búsqueda de modelos en cada nodo homogéneo parte del diagnóstico estadístico intrínseco de su matriz $\mathbf{X}_g$ y vector objetivo $\mathbf{y}_g$, validando después a los candidatos bajo validación cruzada ($K=3$), ruido sintético ($20\%$) e invariancia ante simulación de $20\%$ de nubes:
 
@@ -81,7 +88,7 @@ La búsqueda de modelos en cada nodo homogéneo parte del diagnóstico estadíst
 
 ---
 
-### 3.2 Estudio de Ablación: ¿Por qué separar en Nodos Homogéneos y por qué se descartaron las Redes Neuronales? (`notebooks/02_SeleccionArquitectura.ipynb`)
+### 4.2 Estudio de Ablación: ¿Por qué separar en Nodos Homogéneos y por qué se descartaron las Redes Neuronales? (`notebooks/02_SeleccionArquitectura.ipynb`)
 
 En el cuaderno [`notebooks/02_SeleccionArquitectura.ipynb`](notebooks/02_SeleccionArquitectura.ipynb) se demuestra qué sucede cuando se entrenan modelos **separados por Estado pero mezclando las 39 variables sin dividir en nodos homogéneos**, incluyendo **3 arquitecturas de Redes Neuronales (`MLPRegressor`)**:
 
@@ -100,7 +107,7 @@ En el cuaderno [`notebooks/02_SeleccionArquitectura.ipynb`](notebooks/02_Selecci
 
 ---
 
-## 4. Fase 5: Evaluación Oficial (`notebooks/04_pipeline_agroraices.ipynb`)
+## 5. Fase 5: Evaluación Oficial (`notebooks/04_pipeline_agroraices.ipynb`)
 
 | Ámbito / Árbitro QBAF | Parcelas ($N$) | Correlación de Pearson ($r$) | Coeficiente de Determinación ($R^2$) | $\text{MAE}$ ($\text{t/ha}$) | $\text{MAE}$ ($\text{kg/ha}$) | $\text{RMSE}$ ($\text{kg/ha}$) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -111,11 +118,11 @@ En el cuaderno [`notebooks/02_SeleccionArquitectura.ipynb`](notebooks/02_Selecci
 
 ---
 
-## 5. Fase 6: Despliegue — Uso de SHAP para XAI y Prototipo Web para Agricultor y Analista
+## 6. Fase 6: Despliegue — Uso de SHAP para XAI y Prototipo Web para Agricultor y Analista
 
 La **Fase 6 (Despliegue)** dentro de nuestra metodología CRISP-DM se compone de dos etapas complementarias que conectan el cuaderno principal con la aplicación real en campo:
 
-### 5.1 Etapa 1 en `notebooks/04_pipeline_agroraices.ipynb`: Uso de SHAP para Inteligencia Artificial Explicable (XAI)
+### 6.1 Etapa 1 en `notebooks/04_pipeline_agroraices.ipynb`: Uso de SHAP para Inteligencia Artificial Explicable (XAI)
 
 En lugar de entregar un número de caja negra, en la Sección 6 de [`notebooks/04_pipeline_agroraices.ipynb`](notebooks/04_pipeline_agroraices.ipynb) se implementó **SHAP (`shap.Explainer`)** como motor de **Inteligencia Artificial Explicable (XAI)** acoplado a la deliberación **QBAF + DF-QuAD**. Cada predicción ciega (`CONJUNTO == 'PREDICCION'`) se descompone como una balanza aditiva exacta $\hat{y}(x) = \phi_0 + \sum_{j=1}^M \phi_j(x)$:
 
@@ -133,13 +140,13 @@ En lugar de entregar un número de caja negra, en la Sección 6 de [`notebooks/0
 
 ---
 
-### 5.2 Paso Final del Despliegue: Creación del Prototipo Web con el Modelo y SHAP para Dos Tipos de Usuario ([`https://agro-raices-web.vercel.app/`](https://agro-raices-web.vercel.app/))
+### 6.2 Paso Final del Despliegue: Creación del Prototipo Web con el Modelo y SHAP para Dos Tipos de Usuario ([`https://agro-raices-web.vercel.app/`](https://agro-raices-web.vercel.app/))
 
 Como paso final del despliegue, se creó el prototipo interactivo **[AgroRaíces Web (`https://agro-raices-web.vercel.app/`)](https://agro-raices-web.vercel.app/)**, el cual integra el modelo **QBAF + DF-QuAD** y las explicaciones **SHAP (XAI)** adaptadas específicamente para **dos tipos de usuario**:
 
 | Tipo de Usuario | Cómo presenta el Prototipo el Modelo + SHAP (XAI) | Beneficio Directo |
 | :--- | :--- | :--- |
-| ** 1. Agricultor (Productor de Campo)** | • **Estimación clara de cosecha:** Muestra el rendimiento estimado ($\text{t/ha}$) y las toneladas/costales esperados en su parcela.<br>• **Traducción de SHAP a lenguaje de campo:** Convierte los valores SHAP en explicaciones sencillas y sin tecnicismos (*qué ayudó a tu cultivo* —como humedad en hojas o cobertura de rastrojo— y *qué factores jugaron en contra* —como mañanas frías en abril o pendiente del terreno—).<br>• **Asesoría práctica:** Recomendaciones agronómicas puntuales para cuidar el ciclo. | Permite al productor entender el motivo del cálculo y anticipar decisiones de manejo y logística de trilla. |
+| **1. Agricultor (Productor de Campo)** | • **Estimación clara de cosecha:** Muestra el rendimiento estimado ($\text{t/ha}$) y las toneladas/costales esperados en su parcela.<br>• **Traducción de SHAP a lenguaje de campo:** Convierte los valores SHAP en explicaciones sencillas y sin tecnicismos (*qué ayudó a tu cultivo* —como humedad en hojas o cobertura de rastrojo— y *qué factores jugaron en contra* —como mañanas frías en abril o pendiente del terreno—).<br>• **Asesoría práctica:** Recomendaciones agronómicas puntuales para cuidar el ciclo. | Permite al productor entender el motivo del cálculo y anticipar decisiones de manejo y logística de trilla. |
 | **2. Analista (Técnico FIRA / Investigador)** | • **Desglose técnico de la Balanza SHAP:** Presenta los pesos exactos $\phi_j(x)$ en $\text{kg/ha}$, el valor base regional $\phi_0$ y el porcentaje de impacto de cada variable biofísica, climática y topográfica.<br>• **Deliberación del Consejo de Expertos (QBAF + DF-QuAD):** Muestra la contribución de los nodos especialistas por Estado y la activación de reglas físicas (*Undercutting*).<br>• **Mapa geoespacial interactivo:** Consulta por polígono y análisis regional en Hidalgo, Puebla y Tlaxcala. | Garantiza transparencia matemática total para validación técnica, planeación financiera y seguimiento regional. |
 
 
