@@ -1,134 +1,106 @@
-# Pipeline Oficial AgroRaíces — Metodología CRISP-DM + Arquitectura QBAF / DF-QuAD + SHAP
-
-### Reto AgroCebada FIRA 2026 | Estimación de Rendimiento de Cebada Maltera (t/ha) en Hidalgo, Puebla y Tlaxcala
+# Reto AgroCebada FIRA 2026 | Estimación de Rendimiento de Cebada  (t/ha) en Hidalgo, Puebla y Tlaxcala
 
 ---
 
 **Equipo:** TecnoBuhos  
 **Modelo de Proceso:** CRISP-DM (*Cross-Industry Standard Process for Data Mining*)  
-**Arquitectura de Modelado:** Marco Neuro-Simbólico de Argumentación Bipolar Cuantitativa (**QBAF**) + Algoritmo **DF-QuAD** con Validación *Undercutting* y Doble Separación (por Estado y Grupos Homogéneos) + IA Explicable (**SHAP**)  
-**Cuaderno Principal:** [`pipeline_agroraices.ipynb`](pipeline_agroraices.ipynb)  
-**Predicciones Oficiales:** [`predicciones_oficiales_agroraices.csv`](predicciones_oficiales_agroraices.csv)  
-**Modelo Empaquetado para Producción:** [`modelo_agroraices_final.joblib`](modelo_agroraices_final.joblib) / [`modelo_metadata.json`](modelo_metadata.json)
+**Arquitectura de Modelado:** Marco Neuro-Simbólico de Argumentación Bipolar Cuantitativa (**QBAF**) + Algoritmo **DF-QuAD** + IA Explicable (**XAI / SHAP**)  
+**Cuaderno Principal (Pipeline Oficial):** [`notebooks/04_pipeline_agroraices.ipynb`](notebooks/04_pipeline_agroraices.ipynb)  
+**Cuadernos de Experimentación del Modelo:** [`notebooks/03_seleccion_modelos_por_nodo.ipynb`](notebooks/03_seleccion_modelos_por_nodo.ipynb) | [`notebooks/02_SeleccionArquitectura.ipynb`](notebooks/02_SeleccionArquitectura.ipynb) | [`notebooks/01_mapas.ipynb`](notebooks/01_mapas.ipynb)  
+**Prototipo Web Desplegado (Agricultor y Analista):** [https://agro-raices-web.vercel.app/](https://agro-raices-web.vercel.app/)  
+
+---
+
+## Arquitectura del Proyecto y Estructura de Carpetas
+
+El eje central del proyecto es la **Metodología CRISP-DM** y el cuaderno principal **[`notebooks/04_pipeline_agroraices.ipynb`](notebooks/04_pipeline_agroraices.ipynb)**, donde se desarrolla de principio a fin el pipeline oficial. Los demás cuadernos en **`notebooks/`** son fundamentales como **laboratorio de experimentación** para sustentar las decisiones del modelo:
+
+```text
+AgroRaíces/
+├── notebooks/                                             # Cuadernos científicos ejecutables
+│   ├── 01_mapas.ipynb                                     # [Experimentación] Análisis y visualización geoespacial de las parcelas
+│   ├── 02_SeleccionArquitectura.ipynb                     # [Experimentación] Estudio de opciones de modelos
+│   ├── 03_seleccion_modelos_por_nodo.ipynb                # [Experimentación] Naturaleza matemática de los datos y torneo por Nodo Homogéneo
+│   └── 04_pipeline_agroraices.ipynb                       # CUADERNO PRINCIPAL: Pipeline oficial CRISP-DM + QBAF/DF-QuAD + XAI (SHAP)
+└── README.md                                              # Documentación integral del proyecto
+```
 
 ---
 
 ## Marco Metodológico CRISP-DM en AgroRaíces
 
-El proyecto **AgroRaíces** adopta como marco directriz el estándar internacional **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*) para organizar la ingeniería de características satelitales, el modelado neuro-simbólico y la inferencia predictiva explicable a escala de lote agrícola.
+El proyecto **AgroRaíces** adopta el estándar internacional **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*) integrado con una arquitectura neuro-simbólica en seis fases interconectadas:
 
-El flujo de trabajo se estructura en **seis fases interconectadas**:
-
-| Fase CRISP-DM | Pregunta central | Resultado esperado |
+| Fase CRISP-DM | Pregunta central | Resultado esperado y Cuaderno Asociado |
 | :--- | :--- | :--- |
-| **1. Comprensión del negocio** | ¿Qué problema se quiere resolver y cómo se reconocerá el éxito? | Objetivos, restricciones y criterios de éxito. |
-| **2. Comprensión de los datos** | ¿Qué datos existen y qué tan adecuados son? | Inventario, exploración y diagnóstico de calidad. |
-| **3. Preparación de los datos** | ¿Cómo se transformarán los datos para modelar? | Base analítica integrada y estructurada en Grupos Homogéneos. |
-| **4. Modelado** | ¿Qué modelos pueden resolver el problema? | Arquitectura Neuro-Simbólica **QBAF + DF-QuAD** entrenada y validada por invariancia. |
-| **5. Evaluación** | ¿El modelo cumple el objetivo y generaliza? | Modelo seleccionado ($r = 0.8584$, $R^2 = 0.7362$, $\text{MAE} = 296.3\text{ kg/ha}$), métricas y análisis de errores. |
-| **6. Despliegue y Explicabilidad** | ¿Cómo se utilizarán, auditarán y comunicarán los resultados? | Predicciones oficiales, descomposición aditiva **SHAP** por Estado (3 ejemplos por Estado) y empaquetado web. |
-
-> [!IMPORTANT]
-> **Principio de No Linealidad y Retroalimentación hacia la Arquitectura QBAF + DF-QuAD:**  
-> En concordancia con CRISP-DM, el pipeline no representa una secuencia lineal rígida sino un ciclo con retroalimentación empírica activa:
-> * **Evaluación $\leftrightarrow$ Preparación de Datos (Capa 0 de *Undercutting*):** La evaluación preliminar reveló que los modelos puramente ópticos colapsaban en Puebla debido a la saturación asintótica de reflectancia foliar ($\text{NDVI} > P_{75}$). Esto retroalimentó la preparación de datos para extraer índices de labranza pre-siembra (`s2_sti_presow`, `s2_ndti_presow`), humedad `SWIR` no saturable (`s2_dswi2_mean`) e introducir una **Capa 0 de validación neuro-simbólica (*Ataque Undercutting*)** que anula el voto del árbol óptico ($\sigma_{\text{ET}} \to 0.001$) cuando el dosel se satura.
-> * **Evaluación $\leftrightarrow$ Modelado (Debate DF-QuAD y Selección de Nodos por Invariancia):** La evaluación mediante validación cruzada ($K=3$), ruido sintético gaussiano ($20\%$) e invariancia ante un $20\%$ de nubosidad demostró que cada **Grupo Homogéneo de Variables (Nodo)** requiere una geometría algorítmica específica (`GradientBoostingRegressor` en el nodo biótico de Hidalgo, `SVR RBF`/`GPR` en el nodo de labranza de Puebla, `HuberRegressor` en el nodo termo-hídrico SWIR, `PLS(k=2)` en el nodo bioclimático cardinal y `SVC Ordinal Probabilístico` + Anclaje Modal en el régimen discretizado de Tlaxcala), arbitrados formalmente mediante el algoritmo **DF-QuAD**.
+| **1. Comprensión del negocio** | ¿Qué problema se quiere resolver y cómo se reconocerá el éxito? | Objetivos, restricciones y enfoque de Doble Separación (`04_pipeline_agroraices.ipynb`). |
+| **2. Comprensión de los datos** | ¿Qué datos existen y qué tan adecuados son? | Inventario de `data/`, exploración geoespacial (`01_mapas.ipynb`) y control radiométrico ($\le 30\%$ nubes). |
+| **3. Preparación de los datos** | ¿Cómo se transformarán los datos para modelar? | Capa 0 de *Undercutting* y estructuración en 5 Nodos Homogéneos (`04_pipeline_agroraices.ipynb`). |
+| **4. Modelado** | ¿Qué modelos pueden resolver el problema y por qué? | Deliberación **QBAF + DF-QuAD** en el pipeline principal (`04_pipeline_agroraices.ipynb`), respaldada por la experimentación por nodo (`03_seleccion_modelos_por_nodo.ipynb`) y la ablación sin homogeneidad (`02_SeleccionArquitectura.ipynb`). |
+| **5. Evaluación** | ¿El modelo cumple el objetivo y generaliza? | Validación Out-Of-Fold $K=3$ ($r = 0.8584$, $R^2 = 0.7362$, $\text{MAE} = 296.3\text{ kg/ha}$) en `04_pipeline_agroraices.ipynb`. |
+| **6. Despliegue** | ¿Cómo se explicarán y entregarán los resultados al usuario final? | Uso de **SHAP para IA Explicable (XAI)** en `04_pipeline_agroraices.ipynb` y creación como paso final del **Prototipo Web ([agro-raices-web.vercel.app](https://agro-raices-web.vercel.app/))** con el modelo y SHAP para dos tipos de usuario: **Agricultor** y **Analista**. |
 
 ---
 
-## 1. Fase 1: Comprensión del Negocio
+## 1. Fase 1: Comprensión del Negocio y Doble Separación Neuro-Simbólica
 
-* **Pregunta central:** *¿Qué problema se quiere resolver y cómo se reconocerá el éxito?*
-* **Resultado esperado:** *Objetivos, restricciones y criterios de éxito.*
+El **Reto AgroCebada FIRA 2026** busca estimar el rendimiento de grano de cebada maltera (*Hordeum vulgare*, en $\text{t/ha}$) en 197 polígonos agrícolas de temporal (ciclo abril–octubre 2025) distribuidos en **Hidalgo**, **Puebla** y **Tlaxcala**.
 
-### 1.1 Contexto, Definición del Problema y Enfoque Neuro-Simbólico (QBAF + DF-QuAD)
-El **Reto AgroCebada FIRA 2026** tiene como objetivo estimar con alta precisión agronómica el rendimiento de cosecha de cebada maltera (*Hordeum vulgare*, en $\text{t/ha}$) a nivel de polígono predial individual en **Hidalgo**, **Puebla** y **Tlaxcala**.
-
-En la literatura de teledetección (*Lobell et al., 2015; Deines et al., 2021*) y de inteligencia artificial explicable (*Rago, Cocarascu & Toni*), este desafío se resuelve mediante una **Arquitectura Neuro-Simbólica de Argumentación Bipolar Cuantitativa (QBAF) y Debates DF-QuAD** basada en una **Doble Separación**:
-1. **Separación en Grupos Homogéneos de Variables (Nodos de Evidencia):** Las covariables se agrupan en 5 bloques físicamente homogéneos ($G_{\text{Bio}}$, $G_{\text{Geo-Labranza}}$, $G_{\text{SWIR-Termo}}$, $G_{\text{Clima-PLS}}$, $G_{\text{Meseta-Modal}}$).
-2. **Separación por Estado y Grupos Homogéneos de Parcelas (Meta-Árbitro Contextual):**
-   * **Hidalgo (`Hidalgo_G1_Valle_Humedo` vs. `Hidalgo_G2_Ladera_Seca`):** El árbitro DF-QuAD otorga soporte prioritario ($\sigma = 0.75$) al nodo biótico (`GradientBoosting` + Prior Bayesiano municipal) y modera ($\sigma = 0.25$) al nodo topográfico (`SVR RBF`).
-   * **Puebla (`Puebla_G1_Conservacion_Labranza` vs. `Puebla_G2_Dosel_Saturado`):** El árbitro aplica un **ataque *Undercutting*** al sensor óptico cuando $\text{NDVI} > P_{75}$ ($\sigma_{\text{ET}} = 0.001$) y transfiere el soporte a labranza de conservación (`SVR`), humedad SWIR (`Huber`) y clima fenológico (`PLS k=2`).
-   * **Tlaxcala (`Tlaxcala_G1_Meseta_Modal`):** Régimen de meseta con rendimientos reportados en escalones discretos ($2.5, 3.0, 3.5\text{ t/ha}$), donde el árbitro pondera el Anclaje Modal ($\sigma = 0.55$) con clasificación ordinal probabilística `SVC` ($\sigma = 0.45$).
-
-### 1.2 Criterios de Éxito
-* **Criterio Cuantitativo Nacional:** $r \ge 0.85$, $R^2 \ge 0.72$ y $\text{MAE} \le 310\text{ kg/ha}$ en Validación Cruzada Out-Of-Fold ($K=3$) sin fuga de información.
-* **Criterio Regional:** Correlaciones positivas y estadísticamente significativas en todos los estados ($r > 0.90$ en Hidalgo, $r > 0.40$ en Puebla y $r > 0.35$ en Tlaxcala).
-* **Criterio Operativo y de Explicabilidad:** Generación íntegra de las 59 predicciones de prueba ciega dentro del rango biológico $[1.50, 4.80]\text{ t/ha}$, auditoría aditiva mediante **SHAP** por Estado y serialización para producción web.
+Para resolver la **Heterogeneidad Espacial y Divergencia Biofísica con Covariables Homogéneas**, implementamos un **Marco de Argumentación Bipolar Cuantitativa (QBAF)** resuelto mediante el algoritmo **DF-QuAD** (*Rago, Cocarascu & Toni*) con **Doble Separación**:
+1. **Separación en 5 Grupos Homogéneos de Variables (Nodos de Evidencia):** $G_{\text{Bio}}$, $G_{\text{Geo-Labranza}}$, $G_{\text{SWIR-Termo}}$, $G_{\text{Clima-PLS}}$ y $G_{\text{Meseta-Modal}}$.
+2. **Separación por Estado y Grupos Homogéneos de Parcelas (Meta-Árbitros Regionales):**
+   * **Hidalgo ($N=36$):** Contraste entre valles húmedos tecnificados y laderas semiáridas.
+   * **Puebla ($N=71$):** Cuencas de alta densidad foliar con saturación óptica temprana ($\text{NDVI} > P_{75}$), donde una **Capa 0 de validación física (*Ataque Undercutting*)** anula el voto del árbol óptico ($\sigma_{\text{ET}} \to 0.001$).
+   * **Tlaxcala ($N=31$):** Meseta con rendimientos reportados en escalones discretos múltiplos de $0.5\text{ t/ha}$ ($2.5, 3.0, 3.5\text{ t/ha}$).
 
 ---
 
-## 2. Fase 2: Comprensión de los Datos
+## 2. Fase 2 y Fase 3: Comprensión y Preparación de los Datos 
 
-* **Pregunta central:** *¿Qué datos existen y qué tan adecuados son?*
-* **Resultado esperado:** *Inventario, exploración y diagnóstico de calidad.*
-
-| Fuente | Tipo de Información | Temporalidad / Resolución | Registros | Indicadores Clave |
-| :--- | :--- | :--- | :---: | :--- |
-| **`Conjunto_datos_BASICO_AgroCebada2026.csv`** | Reflectancia multiespectral y térmica superficial | 2022–2025 ($10\text{ m}$–$30\text{ m}$) | $107,666$ | Sentinel-2 (`NDWI`, `DSWI2`, `FAPAR`, `SAVI`, `MRA`, `STI`, `NDTI`) y Landsat 8/9 (`VI6T`). |
-| **`Conjunto_datos_PRO_AgroCebada.csv`** | Alta resolución óptica PlanetScope | 2025 ($3\text{ m}$) | $47,804$ | Dinámica foliar fina (`LAI`, `NDVI`, `MSAVI`) y heterogeneidad intra-parcelaria (`ndvi_std`). |
-| **`temperatura_chirts_era5_parcelas.csv`** | Cubo climático híbrido CHIRTS-ERA5 | 2022–2025 ($0.05^\circ \approx 5\text{ km}$) | 96 GeoTIFF | Temperaturas mínimas y máximas mensuales, anomalías climáticas y tiempo térmico cardinal. |
-| **`topografia_inegi_cem4_parcelas.csv`** | Fisiografía Continuo de Elevaciones CEM 4.0 | Estático | $197$ | Altitud sobre el nivel del mar (`elevacion_msnm`) y pendiente topográfica (`pendiente_grados`). |
-| **`parcelas_con_topografia.csv`** | Micro-rugosidad de cuenca | Estático | $197$ | Índice de relieve local (`proxy_relieve_m`). |
-| **`shp/Parcelas_Reto_AGC_CONJUNTO.shp`** | Polígonos vectoriales oficiales | UTM Zona 14N (`EPSG:32614`) | $197$ | Delimitación predial, centroides geográficos y morfometría (`elongacion_bbox`). |
-| **`ID_area_rendimiento_70_30_Reto_AgroCebada.csv`** | Ground truth oficial | Ciclo evaluado | $197$ | Superficie (`AREA_HA`) y rendimiento cosechado (`138` Entrenamiento / `59` Prueba Ciega). |
+Todas las fuentes ubicadas en `data/` se integran bajo prevención estricta de fuga de información (*Zero Data Leakage*):
+* **Control Radiométrico (Capa 0):** Retención exclusiva de escenas con $\text{nubosidad} \le 30\%$ ($64.35\%$ en Sentinel-2/Landsat y $68.39\%$ en PlanetScope).
+* **Geodesia y Morfometría (`data/shp/`):** Proyección a UTM Zona 14N (`EPSG:32614`), centroides (`lat_centro`, `lon_centro`), ratio de elongación (`elongacion_bbox`), altitud/pendiente (`elevacion_msnm`, `pendiente_grados`) y relieve local (`proxy_relieve_m`).
+* **Índices Biofísicos y de Labranza Pre-Siembra:** Hidratación foliar (`s2_ndwi_mean`, `s2_ndwi_min`), banda SWIR no saturable (`s2_dswi2_mean`), clorofila en borde rojo (`s2_mra_mean`), rastrojo en pre-siembra enero–abril (`s2_sti_presow`, `s2_ndti_presow`), emisión térmica (`landsat_vi6t_max`, `landsat_vi6t_std`) y dinámica foliar a $3\text{ m}$ (`planet_lai_std`, `planet_msavi_mean`, `planet_ndvi_mean`, `persistencia_verde_m11`).
+* **Downscaling Topográfico Adiabático ($\Gamma = -6.5^\circ\text{C}/\text{km}$):** Corrección física por altitud sobre el cubo climático `data/temperatura_chirts_era5_parcelas.csv`.
 
 ---
 
-## 3. Fase 3: Preparación de los Datos
+## 3. Fase 4: Modelado y Justificación Experimental (`notebooks/`)
 
-* **Pregunta central:** *¿Cómo se transformarán los datos para modelar?*
-* **Resultado esperado:** *Base analítica integrada y estructurada en Grupos Homogéneos para el marco QBAF + DF-QuAD.*
+### 3.1 La Naturaleza Matemática de los Datos como Punto de Partida (`notebooks/03_seleccion_modelos_por_nodo.ipynb`)
 
-1. **Capa 0 de Validación Física (*Undercutting* Radiométrico):** Descarte estricto de escenas ópticas con $\text{nubosidad} > 30\%$ para impedir depresiones artificiales de reflectancia antes de construir los argumentos base.
-2. **Nodo Fisiográfico y Morfométrico ($G_{\text{Geo-Labranza}}$):** Proyección UTM Zona 14N (`EPSG:32614`), centroides (`lat_centro`, `lon_centro`), elongación (`elongacion_bbox`), elevación y pendiente del CEM 4.0 de INEGI e índices de labranza y cobertura de rastrojo en pre-siembra (`s2_sti_presow`, `s2_ndti_presow`).
-3. **Nodos Biofísicos Multitemporales por Sensor ($G_{\text{Bio}}$ y $G_{\text{SWIR-Termo}}$):** Retención hídrica foliar (`s2_ndwi_mean`, `s2_ndwi_min`, `s2_dswi2_mean` en banda SWIR inmune a saturación óptica), absorción en borde rojo (`s2_mra_mean`), emisión térmica Landsat (`landsat_vi6t_max`, `landsat_vi6t_std`) y vigor fino PlanetScope a $3\text{ m}$ (`planet_lai_std`, `planet_msavi_mean`, `planet_ndvi_mean`, `persistencia_verde_m11`).
-4. **Nodo Bioclimático Cardinal Fenológico ($G_{\text{Clima-PLS}}$):** Corrección adiabática ($\Gamma = -6.5^\circ\text{C}/\text{km}$) sobre las 96 capas CHIRTS-ERA5, anomalías térmicas (`bi_Tmin_anom25_04`, `lp_Tmin_anom25_04`) y acoplamiento termo-hídrico (`estres_termohidrico`).
+La búsqueda de modelos en cada nodo homogéneo parte del diagnóstico estadístico intrínseco de su matriz $\mathbf{X}_g$ y vector objetivo $\mathbf{y}_g$, validando después a los candidatos bajo validación cruzada ($K=3$), ruido sintético ($20\%$) e invariancia ante simulación de $20\%$ de nubes:
 
----
-
-## 4. Fase 4: Modelado (Arquitectura QBAF + DF-QuAD)
-
-* **Pregunta central:** *¿Qué modelos pueden resolver el problema?*
-* **Resultado esperado:** *Arquitectura Neuro-Simbólica QBAF + DF-QuAD entrenada y validada por invariancia.*
-
-### 4.1 Arquitectura de Árbitros Regionales QBAF y Deliberación DF-QuAD
-
-```
-                     Matriz Analítica Integrada (197 parcelas: 138 Train / 59 Test)
-                                                    │
-                            [Capa 0: Validación Física y Ataques Undercutting]
-                                                    │
-                 ┌──────────────────────────────────┼──────────────────────────────────┐
-                 ▼                                  ▼                                  ▼
-      Árbitro QBAF Hidalgo                Árbitro QBAF Puebla               Árbitro QBAF Tlaxcala
-      (N = 36 | Nodo 1: G_Bio)           (N = 71 | Nodos 2, 3 y 4)         (N = 31 | Nodo 5: G_Meseta)
-                 │                                  │                                  │
-      ┌──────────┴──────────┐            ┌──────────┴──────────┐            ┌──────────┴──────────┐
-      ▼                     ▼            ▼                     ▼            ▼                     ▼
- σ = 0.75 Soporte     σ = 0.25 Mod.  Undercutting Óptico   Debate DF-QuAD  σ = 0.45 SVC         σ = 0.55 Anclaje
- GradientBoosting +   SVR Kernel RBF si NDVI > P75         SVR + Huber +   Ordinal Prob.        Modal Regional
- Prior Bayes (m=0.5)  (Topografía)   (σ_ET -> 0.001)       GPR + PLS(k=2)  (Clases 0.5 t/ha)    (3.0 t/ha)
-```
-
-### 4.1.1 Justificación Cuantitativa de la Selección de Algoritmos por Nodo ($K=3$ CV, Ruido Sintético e Invariancia a 20% de Nubes)
-
-| Nodo QBAF (Grupo Homogéneo) | Modelo Seleccionado (Ganador) | Métricas del Modelo Ganador ($K=3$ OOF) | Métricas de Otros Modelos Evaluados (Rivales en el Nodo) | Criterio de Elección Neuro-Simbólica |
+| Nodo QBAF (Grupo Homogéneo) | Naturaleza Matemática del Dato (Punto de Partida) | Modelo Seleccionado (Ganador) | Métricas del Ganador ($K=3$ OOF) | Métricas de Modelos Rivales Evaluados en el Nodo |
 | :--- | :--- | :--- | :--- | :--- |
-| **Nodo 1 ($G_{\text{Bio}}$ — Hidalgo)**<br>*Biótico, Borde Rojo e Hídrico* | **`GradientBoostingRegressor`**<br>*(+ Prior Bayesiano $m=0.5$)* | • **$R^2_{\text{limpio}} = 0.8896$**<br>• **$\text{MAE}_{\text{limpio}} = 192.20\text{ kg/ha}$**<br>• $\text{MAE}_{\text{ruido 20\%}} = 231.03\text{ kg/ha}$<br>• **$\text{MAE}_{\text{nubes 20\%}} = 243.99\text{ kg/ha}$** | • `RandomForest`: $R^2=0.8717$, $\text{MAE}=216.43$, Ruido $=244.43$, Nubes $=246.38\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=0.8211$, $\text{MAE}=243.68$, Ruido $=282.71$, Nubes $=278.46\text{ kg/ha}$<br>• `Ridge`: $R^2=0.7859$, $\text{MAE}=288.90$, Ruido $=333.76$, Nubes $=1,044.98\text{ kg/ha}$<br>• `Huber`: $R^2=0.6734$, $\text{MAE}=330.41$, Ruido $=391.77$, Nubes $=962.61\text{ kg/ha}$<br>• `SVR RBF`: $R^2=0.6029$, $\text{MAE}=316.20$, Ruido $=344.20$, Nubes $=646.70\text{ kg/ha}$ | Mayor precisión en limpio y máxima invariancia ante depresión radiométrica por nubosidad ($20\%$), donde modelos lineales (`Ridge`, `Huber`) colapsan. |
-| **Nodo 2 ($G_{\text{Geo-Labranza}}$ — Puebla)**<br>*Fisiografía y Labranza Pre-Siembra* | **`SVR (Kernel RBF)` + `GPR (RBF + WhiteKernel)`** | • **`SVR`**: **$R^2_{\text{limpio}} = 0.0910$**, **$\text{MAE}_{\text{limpio}} = 385.70$**, Ruido $=387.69$, Nubes $=411.35\text{ kg/ha}$<br>• **`GPR`**: $R^2_{\text{limpio}} = 0.0568$, $\text{MAE}_{\text{limpio}} = 399.83$, **$\text{MAE}_{\text{nubes 20\%}} = 388.00\text{ kg/ha}$** | • `Ridge`: $R^2=0.0364$, $\text{MAE}=410.99$, Ruido $=418.74$, Nubes $=740.93\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=0.0043$, $\text{MAE}=415.95$, Ruido $=424.67$, Nubes $=420.23\text{ kg/ha}$<br>• `Huber`: $R^2=-0.0170$, $\text{MAE}=394.61$, Ruido $=409.59$, Nubes $=706.59\text{ kg/ha}$<br>• `RandomForest`: $R^2=-0.1994$, $\text{MAE}=473.40$, Nubes $=475.15\text{ kg/ha}$<br>• `GradientBoosting`: $R^2=-0.2442$, $\text{MAE}=501.90$, Nubes $=493.89\text{ kg/ha}$ | `SVR RBF` lidera en precisión en limpio y ruido gaussiano, mientras `GPR` aporta la menor degradación bajo $20\%$ de perturbación superficial. |
-| **Nodo 3 ($G_{\text{SWIR-Termo}}$ — Puebla)**<br>*Humedad SWIR y Emisión Térmica* | **`HuberRegressor` ($\epsilon = 1.2$)** | • **$R^2_{\text{limpio}} = 0.0664$**<br>• **$\text{MAE}_{\text{limpio}} = 365.56\text{ kg/ha}$**<br>• **$\text{MAE}_{\text{ruido 20\%}} = 384.26\text{ kg/ha}$**<br>• **$\text{MAE}_{\text{nubes 20\%}} = 361.46\text{ kg/ha}$** | • `Ridge`: $R^2=0.0571$, $\text{MAE}=397.97$, Ruido $=412.11$, Nubes $=526.74\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=0.0272$, $\text{MAE}=403.53$, Ruido $=412.50$, Nubes $=420.51\text{ kg/ha}$<br>• `SVR RBF`: $R^2=-0.0068$, $\text{MAE}=402.07$, Ruido $=406.04$, Nubes $=476.33\text{ kg/ha}$<br>• `GPR`: $R^2=-0.0169$, $\text{MAE}=416.29$, Nubes $=429.40\text{ kg/ha}$<br>• `RandomForest`: $R^2=-0.1103$, $\text{MAE}=444.59\text{ kg/ha}$<br>• `GradientBoosting`: $R^2=-0.3312$, $\text{MAE}=492.37\text{ kg/ha}$ | Su función de pérdida híbrida $L_2/L_1$ acota linealmente los valores atípicos térmicos (`vi6t_std`) producidos por sombras de nubes y heladas. |
-| **Nodo 4 ($G_{\text{Clima-PLS}}$ — Puebla)**<br>*Cubo Climático Cardinal Fenológico* | **`PLSRegression (k=2)` acoplado a Especialistas** | • **$R^2_{\text{limpio}} = 0.1103$**<br>• **$\text{MAE}_{\text{limpio}} = 403.70\text{ kg/ha}$**<br>• **$\text{MAE}_{\text{ruido 20\%}} = 401.29\text{ kg/ha}$**<br>• **$\text{MAE}_{\text{nubes 20\%}} = 410.72\text{ kg/ha}$** | • `PCA No Supervisado (k=2) + SVR`: $R^2=0.0378$, $\text{MAE}=430.69$, Nubes $=435.46\text{ kg/ha}$<br>• `Sin Compresión (SVR Directo)`: $R^2=0.0198$, $\text{MAE}=405.77$, Nubes $=433.63\text{ kg/ha}$<br>• `Sin Compresión (ExtraTrees)`: $R^2=-0.1710$, $\text{MAE}=472.48$, Nubes $=482.58\text{ kg/ha}$ | Comprime la multicolinealidad severa ($\kappa(\mathbf{X}) = 381.9$) maximizando la covarianza supervisada con el rendimiento antes del debate DF-QuAD. |
-| **Nodo 5 ($G_{\text{Meseta-Modal}}$ — Tlaxcala)**<br>*Meseta de Rendimiento Discretizado* | **`SVC Ordinal Probabilístico` + Anclaje Modal ($3.0\text{ t/ha}$)** | • **$R^2_{\text{limpio}} = 0.0552$**<br>• **$\text{MAE}_{\text{limpio}} = 274.77\text{ kg/ha}$**<br>• **$\text{MAE}_{\text{ruido 20\%}} = 280.17\text{ kg/ha}$**<br>• **$\text{MAE}_{\text{nubes 20\%}} = 298.32\text{ kg/ha}$** | • `SVR Continuo`: $R^2=0.0888$, $\text{MAE}=274.60$, pero **colapsa con nubes a $380.46\text{ kg/ha}$ ($+105.86\text{ kg/ha}$)**<br>• `GPR`: $R^2=-0.0029$, $\text{MAE}=309.51$, Nubes $=309.51\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=-0.0434$, $\text{MAE}=306.30$, Nubes $=324.47\text{ kg/ha}$<br>• `RandomForest`: $R^2=-0.1068$, $\text{MAE}=313.05$, Nubes $=332.98\text{ kg/ha}$<br>• `Ridge`: $R^2=-0.2757$, $\text{MAE}=356.28$, Nubes $=625.81\text{ kg/ha}$<br>• `Huber`: $R^2=-0.4905$, $\text{MAE}=378.63$, Nubes $=686.56\text{ kg/ha}$<br>• `GradientBoosting`: $R^2=-0.7121$, $\text{MAE}=361.10\text{ kg/ha}$ | Evita el sobreajuste sobre etiquetas discretizadas ($80.6\%$ en múltiplos de $0.5\text{ t/ha}$) y resiste el $20\%$ de nubosidad donde `SVR Continuo` colapsa. |
+| **Nodo 1 ($G_{\text{Bio}}$ — Hidalgo)** | **Particiones por Umbral No Lineal:** Respuesta escalonada al frío (`bi_Tmin_anom25_04`) y borde rojo (`s2_mra_mean`). | **`GradientBoostingRegressor`**<br>*(+ Prior Bayes $m=0.5$)* | • **$R^2 = 0.8896$**<br>• **$\text{MAE} = 192.20\text{ kg/ha}$**<br>• Nubes $= 243.99\text{ kg/ha}$ | • `RandomForest`: $R^2=0.8717$, $\text{MAE}=216.43\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=0.8211$, $\text{MAE}=243.68\text{ kg/ha}$<br>• `Ridge`: $R^2=0.7859$, $\text{MAE}=288.90\text{ kg/ha}$<br>• `Huber`: $R^2=0.6734$, $\text{MAE}=330.41\text{ kg/ha}$<br>• `SVR RBF`: $R^2=0.6029$, $\text{MAE}=316.20\text{ kg/ha}$ |
+| **Nodo 2 ($G_{\text{Geo-Labranza}}$ — Puebla)** | **Continuidad Espacial Suave:** Gradiente continuo de relieve (`proxy_relieve_m`) y labranza (`s2_sti_presow`). | **`SVR (Kernel RBF)` + `GPR (RBF + WhiteKernel)`** | • **`SVR`**: **$R^2 = 0.0910$**, **$\text{MAE} = 385.70\text{ kg/ha}$**<br>• **`GPR`**: $\text{MAE} = 399.83\text{ kg/ha}$ | • `Ridge`: $R^2=0.0364$, $\text{MAE}=410.99\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=0.0043$, $\text{MAE}=415.95\text{ kg/ha}$<br>• `RandomForest`: $R^2=-0.1994$, $\text{MAE}=473.40\text{ kg/ha}$<br>• `GradientBoosting`: $R^2=-0.2442$, $\text{MAE}=501.90\text{ kg/ha}$ |
+| **Nodo 3 ($G_{\text{SWIR-Termo}}$ — Puebla)** | **Colas Pesadas y Outliers Térmicos:** Anomalías radiométricas en `landsat_vi6t_std` por bordes de nube. | **`HuberRegressor` ($\epsilon = 1.2$)** | • **$R^2 = 0.0664$**<br>• **$\text{MAE} = 365.56\text{ kg/ha}$**<br>• Nubes $= 361.46\text{ kg/ha}$ | • `Ridge`: $R^2=0.0571$, $\text{MAE}=397.97\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=0.0272$, $\text{MAE}=403.53\text{ kg/ha}$<br>• `SVR RBF`: $R^2=-0.0068$, $\text{MAE}=402.07\text{ kg/ha}$<br>• `RandomForest`: $R^2=-0.1103$, $\text{MAE}=444.59\text{ kg/ha}$ |
+| **Nodo 4 ($G_{\text{Clima-PLS}}$ — Puebla)** | **Multicolinealidad Extrema ($\kappa(\mathbf{X}) \gg 30$):** Alta correlación climática mensual ($p \gg N$). | **`PLSRegression (k=2)` Supervisado** | • **$R^2 = 0.1103$**<br>• **$\text{MAE} = 403.70\text{ kg/ha}$** | • `PCA No Supervisado (k=2)`: $R^2=0.0378$, $\text{MAE}=430.69\text{ kg/ha}$<br>• `Sin Compresión (SVR)`: $R^2=0.0198$, $\text{MAE}=405.77\text{ kg/ha}$<br>• `Sin Compresión (ExtraTrees)`: $R^2=-0.1710$, $\text{MAE}=472.48\text{ kg/ha}$ |
+| **Nodo 5 ($G_{\text{Meseta-Modal}}$ — Tlaxcala)** | **Target Discretizado ($Y$ en múltiplos de $0.5\text{ t/ha}$):** Rendimientos concentrados en escalones discretos. | **`SVC Ordinal Probabilístico` + Anclaje Modal ($3.0\text{ t/ha}$)** | • **$R^2 = 0.0552$**<br>• **$\text{MAE} = 274.77\text{ kg/ha}$**<br>• Nubes $= 298.32\text{ kg/ha}$ | • `SVR Continuo`: Colapsa con nubes a $380.46\text{ kg/ha}$<br>• `ExtraTrees`: $R^2=-0.0434$, $\text{MAE}=306.30\text{ kg/ha}$<br>• `RandomForest`: $R^2=-0.1068$, $\text{MAE}=313.05\text{ kg/ha}$<br>• `Huber`: $R^2=-0.4905$, $\text{MAE}=378.63\text{ kg/ha}$ |
 
 ---
 
-## 5. Fase 5: Evaluación
+### 3.2 Estudio de Ablación: ¿Por qué separar en Nodos Homogéneos y por qué se descartaron las Redes Neuronales? (`notebooks/02_SeleccionArquitectura.ipynb`)
 
-* **Pregunta central:** *¿El modelo cumple el objetivo y generaliza?*
-* **Resultado esperado:** *Modelo seleccionado, métricas y análisis de errores.*
+En el cuaderno [`notebooks/02_SeleccionArquitectura.ipynb`](notebooks/02_SeleccionArquitectura.ipynb) se demuestra qué sucede cuando se entrenan modelos **separados por Estado pero mezclando las 39 variables sin dividir en nodos homogéneos**, incluyendo **3 arquitecturas de Redes Neuronales (`MLPRegressor`)**:
 
-### 5.1 Desempeño Oficial en Validación Cruzada ($K=3$ Out-Of-Fold)
+| Arquitectura / Modelo (Separado por Estado) | ¿Separa Nodos Homogéneos? | $R^2_{\text{Train}}$ Medio | $R^2_{\text{OOF}}$ Validación | Brecha *Overfitting* ($\Delta R^2$) | $\text{MAE}_{\text{Train}}$ ($\text{kg/ha}$) | $\text{MAE}_{\text{OOF}}$ Validación ($\text{kg/ha}$) | Pearson ($r$) OOF |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **QBAF + DF-QuAD (CON Nodos Homogéneos — GANADOR)** | **SÍ (5 Nodos + *Undercutting*)** | $0.5167$ | **$0.7362$** | **Sin sobreajuste** | $186.4$ | **$296.3$** | **$0.8584$** |
+| **`ExtraTrees` (Sin Nodos Homogéneos)** | NO (39 vars mezcladas) | $0.9677$ | $0.6461$ | $+0.3216$ | $55.5$ | $375.7$ | $0.8067$ |
+| **`RandomForest` (Sin Nodos Homogéneos)** | NO (39 vars mezcladas) | $0.8624$ | $0.6249$ | $+0.2375$ | $139.8$ | $379.9$ | $0.7933$ |
+| **`GradientBoosting` (Sin Nodos Homogéneos)** | NO (39 vars mezcladas) | $0.9993$ | $0.5606$ | $+0.4387$ | $7.0$ | $396.7$ | $0.7592$ |
+| **`SVR Kernel RBF` (Sin Nodos Homogéneos)** | NO (39 vars mezcladas) | $0.7105$ | $0.5702$ | $+0.1403$ | $195.9$ | $401.1$ | $0.7581$ |
+| **`Ridge L2` (Sin Nodos Homogéneos)** | NO (39 vars mezcladas) | $0.6876$ | $0.5951$ | $+0.0925$ | $211.8$ | $410.8$ | $0.7722$ |
+| **`HuberRegressor` (Sin Nodos Homogéneos)** | NO (39 vars mezcladas) | $0.8160$ | $0.3868$ | $+0.4292$ | $81.4$ | $488.9$ | $0.6725$ |
+| **Red Neuronal Compacta `MLP (32-16, ReLU, L2=1.0)`** | NO (39 vars mezcladas) | **$0.9572$** | **$-0.0115$** | **$+0.9687$ (Overfitting)** | **$64.0$** | **$632.6$** | $0.5318$ |
+| **Red Neuronal Profunda `MLP (128-64-32, ReLU)`** | NO (39 vars mezcladas) | **$0.9866$** | **$0.0415$** | **$+0.9452$ (Overfitting)** | **$26.7$** | **$637.0$** | $0.5246$ |
+| **Red Neuronal Media `MLP (64-32, Tanh, L2=0.1)`** | NO (39 vars mezcladas) | **$0.9809$** | **$-0.1702$** | **$+1.1511$ (Overfitting)** | **$32.4$** | **$700.0$** | $0.5288$ |
+
+---
+
+## 4. Fase 5: Evaluación Oficial (`notebooks/04_pipeline_agroraices.ipynb`)
 
 | Ámbito / Árbitro QBAF | Parcelas ($N$) | Correlación de Pearson ($r$) | Coeficiente de Determinación ($R^2$) | $\text{MAE}$ ($\text{t/ha}$) | $\text{MAE}$ ($\text{kg/ha}$) | $\text{RMSE}$ ($\text{kg/ha}$) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -139,48 +111,36 @@ En la literatura de teledetección (*Lobell et al., 2015; Deines et al., 2021*) 
 
 ---
 
-## 6. Fase 6: Despliegue y Explicabilidad con SHAP + DF-QuAD por Estado
+## 5. Fase 6: Despliegue — Uso de SHAP para XAI y Prototipo Web para Agricultor y Analista
 
-* **Pregunta central:** *¿Cómo se utilizarán, auditarán y comunicarán los resultados?*
-* **Resultado esperado:** *Predicciones oficiales, auditoría aditiva SHAP sobre 3 ejemplos sin etiqueta por Estado y empaquetado web.*
+La **Fase 6 (Despliegue)** dentro de nuestra metodología CRISP-DM se compone de dos etapas complementarias que conectan el cuaderno principal con la aplicación real en campo:
 
-### 6.1 Predicciones Auditadas con SHAP por Estado (3 Ejemplos de Prueba Ciega por Estado = 9 Parcelas)
+### 5.1 Etapa 1 en `notebooks/04_pipeline_agroraices.ipynb`: Uso de SHAP para Inteligencia Artificial Explicable (XAI)
 
-Cada predicción sobre los polígonos del conjunto `CONJUNTO == 'PREDICCION'` se audita mediante la descomposición aditiva exacta de **SHAP (`shap.Explainer`)**:
-$$\hat{y}_{\text{SHAP}}(x) = \phi_0 + \sum_{j=1}^{M} \phi_j(x)$$
+En lugar de entregar un número de caja negra, en la Sección 6 de [`notebooks/04_pipeline_agroraices.ipynb`](notebooks/04_pipeline_agroraices.ipynb) se implementó **SHAP (`shap.Explainer`)** como motor de **Inteligencia Artificial Explicable (XAI)** acoplado a la deliberación **QBAF + DF-QuAD**. Cada predicción ciega (`CONJUNTO == 'PREDICCION'`) se descompone como una balanza aditiva exacta $\hat{y}(x) = \phi_0 + \sum_{j=1}^M \phi_j(x)$:
 
-| Estado | `ID_POLIGONO` | Municipio | Área ($\text{ha}$) | Deliberación QBAF + DF-QuAD | Base Regional $\phi_0$ ($\text{t/ha}$) | Suma SHAP $\sum \phi_j$ ($\text{kg/ha}$) | Predicción $\hat{y}$ ($\text{t/ha}$) | Producción Total ($\text{t}$) | Top Impulsores ($+\text{SHAP}$) | Top Frenadores ($-\text{SHAP}$) |
-| :--- | :---: | :--- | :---: | :--- | :---: | :---: | :---: | :---: | :--- | :--- |
-| **Hidalgo** | **`AGC_003`** | Singuilucan | $18.68$ | Nodo 1 `GradientBoosting` ($\sigma=0.75$) + `SVR RBF` ($\sigma=0.25$) | $3.7669$ | $-379.3$ | **$3.3876$** | **$63.28$** | `s2_mra_mean` ($+117\text{ kg/ha}$), `bi_canopy_air_diff` ($+21\text{ kg/ha}$) | `bi_Tmin_anom25_04` ($-211\text{ kg/ha}$), `prior_municipal` ($-136\text{ kg/ha}$) |
-| **Hidalgo** | **`AGC_030`** | Singuilucan | $13.05$ | Nodo 1 `GradientBoosting` ($\sigma=0.75$) + `SVR RBF` ($\sigma=0.25$) | $3.7669$ | $-646.2$ | **$3.1207$** | **$40.73$** | `s2_mra_mean` ($+39\text{ kg/ha}$), `landsat_vi6t_max` ($+11\text{ kg/ha}$) | `bi_Tmin_anom25_04` ($-227\text{ kg/ha}$), `prior_municipal` ($-152\text{ kg/ha}$) |
-| **Hidalgo** | **`AGC_042`** | Singuilucan | $3.81$ | Nodo 1 `GradientBoosting` ($\sigma=0.75$) + `SVR RBF` ($\sigma=0.25$) | $3.7669$ | $-1,022.0$ | **$2.7448$** | **$10.46$** | `s2_mra_mean` ($+17\text{ kg/ha}$), `landsat_vi6t_max` ($+12\text{ kg/ha}$) | `bi_Tmin_anom25_04` ($-422\text{ kg/ha}$), `lp_Tmin_anom25_04` ($-293\text{ kg/ha}$) |
-| **Puebla** | **`AGC_011`** | Chignahuapan | $7.17$ | *Undercutting* Activo ($\sigma_{\text{ET}}=0.001$) + `SVR`/`Huber`/`PLS` | $4.5346$ | $+173.0$ | **$4.7076$** | **$33.75$** | `landsat_vi6t_std` ($+49\text{ kg/ha}$), `Z1_pls_clima` ($+44\text{ kg/ha}$) | `log_area` ($-53\text{ kg/ha}$), `s2_ndwi_min` ($-24\text{ kg/ha}$) |
-| **Puebla** | **`AGC_016`** | Chignahuapan | $7.47$ | Debate Completo `SVR`/`Huber`/`GPR`/`ET` + `PLS` | $4.5346$ | $-118.3$ | **$4.4164$** | **$32.99$** | `bi_vpd_ndwi_stress` ($+14\text{ kg/ha}$), `s2_ndwi_min` ($+10\text{ kg/ha}$) | `s2_sti_presow` ($-68\text{ kg/ha}$), `log_area` ($-66\text{ kg/ha}$) |
-| **Puebla** | **`AGC_028`** | Chignahuapan | $1.86$ | Debate Completo `SVR`/`Huber`/`GPR`/`ET` + `PLS` | $4.5346$ | $+120.0$ | **$4.6546$** | **$8.66$** | `s2_ndwi_min` ($+105\text{ kg/ha}$), `log_area` ($+59\text{ kg/ha}$) | `bi_vpd_ndwi_stress` ($-53\text{ kg/ha}$), `s2_dswi2_mean` ($-50\text{ kg/ha}$) |
-| **Tlaxcala** | **`AGC_025`** | Calpulalpan | $2.00$ | Nodo 5 Anclaje Modal ($\sigma=0.55$) + `SVC` Ordinal ($\sigma=0.45$) | $2.9941$ | $+12.4$ | **$3.0065$** | **$6.01$** | `elongacion_bbox` ($+6\text{ kg/ha}$), `planet_msavi_mean` ($+4\text{ kg/ha}$) | `lat_centro` ($-2\text{ kg/ha}$) |
-| **Tlaxcala** | **`AGC_027`** | Calpulalpan | $8.46$ | Nodo 5 Anclaje Modal ($\sigma=0.55$) + `SVC` Ordinal ($\sigma=0.45$) | $2.9941$ | $-13.6$ | **$2.9805$** | **$25.21$** | `lat_centro` ($+3\text{ kg/ha}$), `elongacion_bbox` ($+1\text{ kg/ha}$) | `planet_msavi_mean` ($-12\text{ kg/ha}$), `landsat_intra_vi6t_std` ($-5\text{ kg/ha}$) |
-| **Tlaxcala** | **`AGC_029`** | Calpulalpan | $5.90$ | Nodo 5 Anclaje Modal ($\sigma=0.55$) + `SVC` Ordinal ($\sigma=0.45$) | $2.9941$ | $+26.5$ | **$3.0206$** | **$17.82$** | `planet_msavi_mean` ($+8\text{ kg/ha}$), `lon_centro` ($+8\text{ kg/ha}$) | Sin castigo neto |
-
-### 6.2 Empaquetado y Serialización para Producción Web
-El script de producción [`empaquetar_modelo_agroraices_final.py`](empaquetar_modelo_agroraices_final.py) entrena y serializa la arquitectura completa **QBAF + DF-QuAD**:
-1. [`modelo_agroraices_final.joblib`](modelo_agroraices_final.joblib): Artefacto binario comprimido ($683.3\text{ KB}$) con todos los nodos de evidencia, escaladores, priores bayesianos y umbrales de *Undercutting*.
-2. [`modelo_metadata.json`](modelo_metadata.json): Esquema JSON con las métricas oficiales Out-Of-Fold ($r = 0.8584, R^2 = 0.7362, \text{MAE} = 296.3\text{ kg/ha}$) y municipios soportados.
-3. [`predicciones_oficiales_agroraices.csv`](predicciones_oficiales_agroraices.csv): Archivo oficial con las estimaciones de rendimiento ($\text{t/ha}$) y producción total ($\text{t}$) para las 59 parcelas de prueba ciega.
+| Estado | Parcela (`ID_POLIGONO`) | Base $\phi_0$ ($\text{t/ha}$) | Top 1 Variable (Peso $\text{kg/ha}$ \| $\%$ Importancia) | Top 2 Variable (Peso $\text{kg/ha}$ \| $\%$ Importancia) | Top 3 Variable (Peso $\text{kg/ha}$ \| $\%$ Importancia) | Predicción Final $\hat{y}$ ($\text{t/ha}$) |
+| :--- | :---: | :---: | :--- | :--- | :--- | :---: |
+| **Hidalgo** | **`AGC_003`** *(18.68 ha)* | $3.7669$ | `bi_Tmin_anom25_04`: **$-211.2\text{ kg/ha}$ ($29.4\%$)** | `prior_municipal`: **$-135.9\text{ kg/ha}$ ($18.9\%$)** | `s2_mra_mean`: **$+117.1\text{ kg/ha}$ ($16.3\%$)** | **$3.3876\text{ t/ha}$** *($63.28\text{ t}$)* |
+| **Hidalgo** | **`AGC_030`** *(13.05 ha)* | $3.7669$ | `bi_Tmin_anom25_04`: **$-226.7\text{ kg/ha}$ ($30.1\%$)** | `prior_municipal`: **$-151.7\text{ kg/ha}$ ($20.1\%$)** | `lp_Tmin_anom25_04`: **$-96.4\text{ kg/ha}$ ($12.8\%$)** | **$3.1207\text{ t/ha}$** *($40.73\text{ t}$)* |
+| **Hidalgo** | **`AGC_042`** *(3.81 ha)* | $3.7669$ | `bi_Tmin_anom25_04`: **$-421.8\text{ kg/ha}$ ($37.7\%$)** | `lp_Tmin_anom25_04`: **$-292.7\text{ kg/ha}$ ($26.2\%$)** | `prior_municipal`: **$-166.3\text{ kg/ha}$ ($14.9\%$)** | **$2.7448\text{ t/ha}$** *($10.46\text{ t}$)* |
+| **Puebla** | **`AGC_011`** *(7.17 ha)* | $4.5346$ | `log_area`: **$-52.6\text{ kg/ha}$ ($15.2\%$)** | `landsat_vi6t_std`: **$+48.6\text{ kg/ha}$ ($14.1\%$)** | `Z1_pls_clima`: **$+44.2\text{ kg/ha}$ ($12.8\%$)** | **$4.7076\text{ t/ha}$** *($33.75\text{ t}$)* |
+| **Puebla** | **`AGC_016`** *(7.47 ha)* | $4.5346$ | `s2_sti_presow`: **$-67.5\text{ kg/ha}$ ($29.2\%$)** | `log_area`: **$-65.8\text{ kg/ha}$ ($28.4\%$)** | `elevacion_msnm`: **$-23.0\text{ kg/ha}$ ($9.9\%$)** | **$4.4164\text{ t/ha}$** *($32.99\text{ t}$)* |
+| **Puebla** | **`AGC_028`** *(1.86 ha)* | $4.5346$ | `s2_ndwi_min`: **$+105.5\text{ kg/ha}$ ($23.4\%$)** | `log_area`: **$+59.0\text{ kg/ha}$ ($13.1\%$)** | `s2_sti_presow`: **$+58.5\text{ kg/ha}$ ($13.0\%$)** | **$4.6546\text{ t/ha}$** *($8.66\text{ t}$)* |
+| **Tlaxcala** | **`AGC_025`** *(2.00 ha)* | $2.9941$ | `elongacion_bbox`: **$+6.4\text{ kg/ha}$ ($39.4\%$)** | `planet_msavi_mean`: **$+3.9\text{ kg/ha}$ ($24.2\%$)** | `landsat_intra_vi6t_std`: **$+3.7\text{ kg/ha}$ ($23.0\%$)** | **$3.0065\text{ t/ha}$** *($6.01\text{ t}$)* |
+| **Tlaxcala** | **`AGC_027`** *(8.46 ha)* | $2.9941$ | `planet_msavi_mean`: **$-12.2\text{ kg/ha}$ ($55.6\%$)** | `landsat_intra_vi6t_std`: **$-4.8\text{ kg/ha}$ ($21.8\%$)** | `lat_centro`: **$+2.7\text{ kg/ha}$ ($12.3\%$)** | **$2.9805\text{ t/ha}$** *($25.21\text{ t}$)* |
+| **Tlaxcala** | **`AGC_029`** *(5.90 ha)* | $2.9941$ | `planet_msavi_mean`: **$+7.9\text{ kg/ha}$ ($29.8\%$)** | `lon_centro`: **$+7.8\text{ kg/ha}$ ($29.4\%$)** | `elongacion_bbox`: **$+5.6\text{ kg/ha}$ ($21.2\%$)** | **$3.0206\text{ t/ha}$** *($17.82\text{ t}$)* |
 
 ---
 
-## Estructura del Repositorio
+### 5.2 Paso Final del Despliegue: Creación del Prototipo Web con el Modelo y SHAP para Dos Tipos de Usuario ([`https://agro-raices-web.vercel.app/`](https://agro-raices-web.vercel.app/))
 
-```
-AgroRaíces/
-├── pipeline_agroraices.ipynb             # Pipeline oficial CRISP-DM + QBAF/DF-QuAD + SHAP por Estado
-├── predicciones_oficiales_agroraices.csv  # Estimaciones oficiales para las 59 parcelas ciegas
-├── empaquetar_modelo_agroraices_final.py # Script de entrenamiento y empaquetado para producción web
-├── modelo_agroraices_final.joblib        # Modelo QBAF + DF-QuAD serializado para producción
-├── modelo_metadata.json                  # Metadatos y métricas oficiales del modelo en JSON
-├── diagnostico_regional_agroraices.png   # Panel visual regional (Hidalgo, Puebla, Tlaxcala)
-├── diagnostico_global_agroraices.png     # Panel visual global (1:1, residuos y densidades)
-├── shap_prediccion_3x3_por_estado.png    # Panel 3x3 de explicabilidad SHAP en prueba ciega por Estado
-├── README.md                             # Documentación oficial del proyecto AgroRaíces
-└── Conjunto_datos_*.csv                  # Tablas de datos oficiales del reto FIRA 2026
-```
+Como paso final del despliegue, se creó el prototipo interactivo **[AgroRaíces Web (`https://agro-raices-web.vercel.app/`)](https://agro-raices-web.vercel.app/)**, el cual integra el modelo **QBAF + DF-QuAD** y las explicaciones **SHAP (XAI)** adaptadas específicamente para **dos tipos de usuario**:
+
+| Tipo de Usuario | Cómo presenta el Prototipo el Modelo + SHAP (XAI) | Beneficio Directo |
+| :--- | :--- | :--- |
+| ** 1. Agricultor (Productor de Campo)** | • **Estimación clara de cosecha:** Muestra el rendimiento estimado ($\text{t/ha}$) y las toneladas/costales esperados en su parcela.<br>• **Traducción de SHAP a lenguaje de campo:** Convierte los valores SHAP en explicaciones sencillas y sin tecnicismos (*qué ayudó a tu cultivo* —como humedad en hojas o cobertura de rastrojo— y *qué factores jugaron en contra* —como mañanas frías en abril o pendiente del terreno—).<br>• **Asesoría práctica:** Recomendaciones agronómicas puntuales para cuidar el ciclo. | Permite al productor entender el motivo del cálculo y anticipar decisiones de manejo y logística de trilla. |
+| **2. Analista (Técnico FIRA / Investigador)** | • **Desglose técnico de la Balanza SHAP:** Presenta los pesos exactos $\phi_j(x)$ en $\text{kg/ha}$, el valor base regional $\phi_0$ y el porcentaje de impacto de cada variable biofísica, climática y topográfica.<br>• **Deliberación del Consejo de Expertos (QBAF + DF-QuAD):** Muestra la contribución de los nodos especialistas por Estado y la activación de reglas físicas (*Undercutting*).<br>• **Mapa geoespacial interactivo:** Consulta por polígono y análisis regional en Hidalgo, Puebla y Tlaxcala. | Garantiza transparencia matemática total para validación técnica, planeación financiera y seguimiento regional. |
+
+
+
