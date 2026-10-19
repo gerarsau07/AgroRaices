@@ -4,7 +4,7 @@
 
 **Equipo:** TecnoBuhos  
 **Modelo de Proceso:** CRISP-DM (*Cross-Industry Standard Process for Data Mining*)  
-**Arquitectura de Modelado:** Marco Neuro-Simbólico de Argumentación Bipolar Cuantitativa (**QBAF**) + Algoritmo **DF-QuAD** + IA Explicable (**XAI / SHAP**)  
+**Arquitectura de Modelado:** Marco Neuro-Simbólico de Argumentación Bipolar Cuantitativa 
 **Cuaderno Principal (Pipeline Oficial):** [`notebooks/04_pipeline_agroraices.ipynb`](notebooks/04_pipeline_agroraices.ipynb)  
 **Cuadernos de Experimentación del Modelo:** [`notebooks/03_seleccion_modelos_por_nodo.ipynb`](notebooks/03_seleccion_modelos_por_nodo.ipynb) | [`notebooks/02_SeleccionArquitectura.ipynb`](notebooks/02_SeleccionArquitectura.ipynb) | [`notebooks/01_mapas.ipynb`](notebooks/01_mapas.ipynb)  
 **Prototipo Web Desplegado (Agricultor y Analista):** [https://agro-raices-web.vercel.app/](https://agro-raices-web.vercel.app/)  
